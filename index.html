@@ -1,0 +1,2313 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>โปรแกรมจัดงานรถขนส่ง ITP Bangpoo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/limonte-sweetalert2/11.10.5/sweetalert2.all.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://npmcdn.com/flatpickr/dist/l10n/th.js"></script>
+
+<style>
+:root{
+  --bg:#0f1720;--panel:#161f2b;--panel2:#1c2836;--line:#283444;--line2:#33465c;
+  --ink:#e6edf5;--ink-dim:#8ea0b5;--ink-mute:#61748c;
+  --t4:#3b9c6e;--t4bg:#12271e;--t6:#c9902a;--t6bg:#2a2110;--t10:#4a7fd0;--t10bg:#14202f;
+  --hire:#9c6fce;--hirebg:#221830;
+  --pickup:#d9654b;--pickupbg:#2a1a18;
+  --ok:#37b26b;--warn:#e0a63a;--bad:#e05a52;--badbg:#2b1614;--accent:#5b9dd9;--r:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:'IBM Plex Sans Thai',system-ui,sans-serif;background:var(--bg);color:var(--ink);font-size:14px;line-height:1.45;display:flex;flex-direction:column;overflow:hidden}
+.mono{font-family:'IBM Plex Mono',monospace}
+button{font-family:inherit}
+
+header{min-height:56px;flex-shrink:0;display:flex;flex-direction:column;gap:6px;padding:9px 16px;background:linear-gradient(180deg,#182432,#131c27);border-bottom:1px solid var(--line);position:relative;z-index:20}
+.header-row{display:flex;align-items:center;gap:14px;width:100%}
+header h1{font-size:16px;font-weight:700;white-space:nowrap;flex-shrink:0}
+header h1 small{color:var(--ink-mute);font-weight:500;font-size:12px;margin-left:6px}
+.toolbar{display:flex;flex:1;min-width:0;gap:7px;align-items:center}
+.btn{font-size:13px;font-weight:600;padding:7px 13px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);cursor:pointer;white-space:nowrap;line-height:1.15}
+.btn:hover{border-color:var(--accent)}
+.btn-primary{background:linear-gradient(180deg,#4a7fd0,#3d6fbe);border-color:#3d6fbe;color:#fff}
+.btn-primary:hover{filter:brightness(1.1)}
+.btn-sm{padding:5px 10px;font-size:12px}
+.seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;flex-shrink:0}
+.seg button{background:var(--panel2);border:none;color:var(--ink-dim);font-size:12px;padding:6px 10px;cursor:pointer}
+.seg button.on{background:var(--accent);color:#fff}
+.seg button:disabled{opacity:0.35;cursor:not-allowed}
+.stat{display:flex;gap:14px;margin-left:auto;align-items:center;white-space:nowrap}
+.stat .chip{font-size:12px;color:var(--ink-dim)}
+.stat .chip b{color:var(--ink);font-variant-numeric:tabular-nums}
+/* --- toolbar: จัดกลุ่มปุ่มให้เป็นระเบียบ --- */
+.toolbar{flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;scrollbar-width:thin}
+.toolbar::-webkit-scrollbar{height:5px}
+.tb-group{display:flex;align-items:center;gap:7px;flex-shrink:0}
+.tb-divider{width:1px;align-self:stretch;background:var(--line);flex-shrink:0;margin:4px 2px}
+.tb-spacer{flex:1 1 auto;min-width:8px}
+.btn-icon{padding:7px 9px}
+/* session (role/logout) แยกกลุ่มชัดเจน ชิดขวาสุด */
+.session-group{display:flex;align-items:center;gap:8px;flex-shrink:0;margin-left:auto;padding-left:14px;border-left:1px solid var(--line)}
+
+.flatpickr-calendar { font-family: 'IBM Plex Sans Thai', sans-serif !important; background: #1c2836 !important; border: 1px solid #33465c !important; box-shadow: 0 10px 25px rgba(0,0,0,0.5) !important; }
+.flatpickr-day.selected { background: #3d6fbe !important; border-color: #3d6fbe !important; }
+.flatpickr-day.day-has-orders:not(.prevMonthDay):not(.nextMonthDay):not(.flatpickr-disabled) { color:#ffffff !important; font-weight:700; }
+.flatpickr-day.day-no-orders:not(.prevMonthDay):not(.nextMonthDay):not(.flatpickr-disabled) { color:#8ea0b5 !important; }
+.flatpickr-day.selected.day-has-orders, .flatpickr-day.selected.day-no-orders { color:#ffffff !important; }
+.flatpickr-day.today:not(.selected) { border-color:#5b9dd9 !important; }
+.flatpickr-month, .flatpickr-weekday { color: #e6edf5 !important; fill: #e6edf5 !important; }
+.flatpickr-current-month .numInputWrapper { width: 8ch !important; }
+.date-btn { background:#14202f !important; color:#8fb8e8 !important; border-color:#264a7f !important; padding:5px 10px !important; font-family:'IBM Plex Sans Thai' !important; font-size:13px !important; outline:none; cursor:pointer; width:105px !important; text-align:center; }
+.calendar-dot { position:absolute; bottom:2px; left:50%; transform:translateX(-50%); width:5px; height:5px; background:var(--warn); border-radius:50%; box-shadow: 0 0 6px var(--warn); }
+
+.pop{position:absolute;background:var(--panel);border:1px solid var(--line2);border-radius:12px;padding:14px 16px;box-shadow:0 12px 40px #000a;z-index:60;display:none;min-width:480px;max-height:75vh;overflow-y:auto}
+.pop.centered{position:fixed;top:50%;left:50%;right:auto;transform:translate(-50%,-50%);width:min(600px,94vw)}
+.pop.show{display:block}
+.pop-backdrop{position:fixed;inset:0;background:#0009;z-index:55;display:none;backdrop-filter:blur(2px)}
+.pop-backdrop.show{display:block}
+.pop-head{display:flex;align-items:center;margin-bottom:10px}
+.pop-head h4{margin-bottom:0;flex:1;font-size:13px;color:var(--ink-dim);font-weight:600}
+.pop-close{cursor:pointer;color:var(--ink-mute);font-size:20px;line-height:1;padding:2px 6px;border-radius:6px}
+.pop-close:hover{color:var(--bad);background:#22161a}
+.pop .grid{display:grid;grid-template-columns:auto 1fr 1fr 1fr;gap:8px 12px;align-items:center;margin-bottom:10px}
+.pop .grid span{font-size:13px}
+.pop input{background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:5px 8px;font-size:13px;font-family:'IBM Plex Mono';text-align:right;width:100%}
+.pop .hdr{color:var(--ink-mute);font-size:11px;text-align:center}
+.pop .row2{display:flex;gap:10px;align-items:center;margin-bottom:10px;font-size:13px}
+.pop .row2 input{width:60px}
+
+#site-login{position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center}
+#site-login.hidden{display:none}
+.login-box{background:var(--panel);padding:40px;border-radius:16px;border:1px solid var(--line2);width:90%;max-width:380px;text-align:center;box-shadow:0 20px 40px rgba(0,0,0,0.5)}
+.login-box h2{color:var(--ink);font-size:20px;margin-bottom:8px;font-weight:700}
+.login-box p{color:var(--ink-dim);font-size:13.5px;margin-bottom:24px;line-height:1.6}
+.btn-google{width:100%;padding:12px;background:#ffffff;border:1px solid #ddd;border-radius:8px;color:#333;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:background 0.2s}
+.btn-google:hover{background:#f1f1f1}
+.login-error{color:var(--bad);font-size:13px;margin-top:16px;display:none;background:var(--badbg);padding:8px;border-radius:6px;border:1px solid #8a251c}
+
+.drv-table{width:100%;border-collapse:collapse;margin-bottom:10px}
+.drv-table th{font-size:11px;color:var(--ink-mute);text-align:left;padding:4px 6px;border-bottom:1px solid var(--line)}
+.drv-table td{padding:4px 6px;border-bottom:1px solid var(--line)}
+.drv-table input[type=text], .drv-table select{font-family:'IBM Plex Sans Thai';text-align:left;font-size:13px;width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:4px;padding:3px 6px}
+.drv-table input[type=checkbox]{width:16px;height:16px;accent-color:var(--accent);cursor:pointer}
+.drv-del{cursor:pointer;color:var(--ink-mute);font-size:15px;display:flex;align-items:center;justify-content:center}
+.drv-del:hover{color:var(--bad)}
+
+.filterbar{display:flex;flex-shrink:0;align-items:center;gap:8px;padding:7px 16px;background:var(--panel);border-bottom:1px solid var(--line);font-size:12px;flex-wrap:wrap}
+.filterbar .lbl{color:var(--ink-mute)}
+.col-toggle{padding:4px 11px;border-radius:20px;cursor:pointer;user-select:none;font-weight:600;border:1px solid var(--line);background:var(--panel2);color:var(--ink-dim);display:flex;align-items:center;gap:5px;font-size:12px}
+.col-toggle .dot{width:8px;height:8px;border-radius:2px}
+.col-toggle.on.f4{background:var(--t4bg);color:#7fd3a5;border-color:var(--t4)}
+.col-toggle.on.f6{background:var(--t6bg);color:#e0b95a;border-color:var(--t6)}
+.col-toggle.on.f10{background:var(--t10bg);color:#8fb8e8;border-color:var(--t10)}
+.col-toggle.on.fhire{background:var(--hirebg);color:#c0a0e0;border-color:var(--hire)}
+.col-toggle:not(.on){opacity:.5}
+.dot.d4{background:var(--t4)}.dot.d6{background:var(--t6)}.dot.d10{background:var(--t10)}.dot.dhire{background:var(--hire)}
+.time-filter{padding:4px 11px;border-radius:20px;cursor:pointer;user-select:none;font-weight:600;border:1px solid var(--line);background:var(--panel2);color:var(--ink-dim);font-size:12px;display:flex;align-items:center;gap:4px}
+.time-filter.on.morn{background:#271d0b;color:#e3b341;border-color:#825a17}
+.time-filter.on.bnoon{background:#3a2008;color:#f09040;border-color:#8a4515}
+.time-filter.on.aft{background:#12271e;color:#56d364;border-color:#235c34}
+.time-filter.on.eve{background:#3b1916;color:#ff7b72;border-color:#8a251c}
+.time-filter.on.any{background:#1a2733;color:#7fb0e0;border-color:#264a7f}
+.time-filter:not(.on){opacity:.5}
+
+.wrap{display:flex;flex:1;min-height:0}
+.pool{width:320px;flex-shrink:0;background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column}
+.pool-head{padding:11px 13px 8px;border-bottom:1px solid var(--line)}
+.pool-head .title{display:flex;align-items:center;gap:8px;margin-bottom:9px}
+.pool-head .title b{font-size:14px}
+.pool-head .title .n{background:var(--accent);color:#fff;font-size:11px;font-weight:700;padding:1px 8px;border-radius:20px}
+.search{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:7px 10px;font-size:13px;font-family:inherit}
+.search::placeholder{color:var(--ink-mute)}
+.zones{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}
+.zone-btn{font-size:11px;padding:3px 9px;border-radius:20px;cursor:pointer;background:var(--panel2);border:1px solid var(--line);color:var(--ink-dim);user-select:none}
+.zone-btn.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.pool-list{flex:1;overflow-y:auto;padding:8px}
+.pool.pool-hl{background:#18242f;outline:2px dashed var(--accent);outline-offset:-4px}
+.board{flex:1;display:flex;overflow-x:auto;overflow-y:hidden}
+.col{flex:1;min-width:335px;display:flex;flex-direction:column;border-right:1px solid var(--line);flex-shrink:0}
+.col.hidden{display:none}
+.col-head{padding:9px 13px;display:flex;align-items:center;gap:9px;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:2}
+.col-4 .col-head{background:var(--t4bg)}.col-6 .col-head{background:var(--t6bg)}.col-10 .col-head{background:var(--t10bg)}.col-hire .col-head{background:var(--hirebg)}
+.col-head .dot{width:9px;height:9px;border-radius:3px}
+.col-4 .dot{background:var(--t4)}.col-6 .dot{background:var(--t6)}.col-10 .dot{background:var(--t10)}.col-hire .dot{background:var(--hire)}
+.col-head b{font-size:14px;font-weight:700}
+.col-head .cnt{font-size:11px;color:var(--ink-mute);font-family:'IBM Plex Mono'}
+.col-head .cap{margin-left:auto;font-size:11px;color:var(--ink-mute);font-family:'IBM Plex Mono'}
+.col-body{flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:10px}
+.add-truck{border:1.5px dashed var(--line);border-radius:var(--r);padding:10px;text-align:center;color:var(--ink-mute);font-size:13px;cursor:pointer;user-select:none}
+.add-truck:hover{border-color:var(--accent);color:var(--accent)}
+
+.truck{background:var(--panel2);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;flex-shrink:0}
+.truck.slot-warn{border-color:var(--bad);box-shadow:0 0 0 1px var(--bad) inset}
+.truck.truck-hl{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
+.truck-head{padding:8px 11px 6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.truck-head .tname{font-size:13.5px;font-weight:600;flex:1;outline:none;min-width:120px}
+.truck-head .tname:focus{background:#0d141d;border-radius:4px;padding:1px 4px}
+.truck-daily{font-size:11px;color:var(--ink-mute);font-family:'IBM Plex Mono'}
+.action-btn{cursor:pointer;color:var(--ink-mute);font-size:15px;line-height:1;padding:2px}
+.action-btn:hover{color:var(--accent)}
+.del-truck:hover{color:var(--bad)}
+.drv-row{display:flex;align-items:center;gap:6px;padding:0 11px 7px;width:100%}
+.drv-select{background:#0d141d;border:1px solid var(--line);color:var(--ink);border-radius:7px;padding:4px 8px;font-size:12.5px;font-family:inherit;flex:1;cursor:pointer}
+.drv-badge{font-size:10.5px;padding:1px 6px;border-radius:5px;font-weight:700;white-space:nowrap}
+.drv-ok{background:#12271e;color:#56d364}
+.drv-miss{background:#3b1916;color:#ff7b72;border:1px solid #8a251c}
+.trip{margin:0 8px 8px;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:#141d28}
+.trip.over{border-color:var(--bad)}
+.trip-head{display:flex;align-items:center;gap:6px;padding:6px 10px;font-size:11px;background:#111a24}
+.trip-head .tlabel{font-weight:700;color:var(--ink-dim)}
+.trip-head .tw{margin-left:auto;font-family:'IBM Plex Mono';color:var(--ink-mute)}
+.trip-head .tw.over{color:var(--bad);font-weight:700}
+.trip-head .del-trip{cursor:pointer;color:var(--ink-mute)}
+.trip-head .del-trip:hover{color:var(--bad)}
+.tbar{height:3px;background:#0d141d}
+.tbar>i{display:block;height:100%;background:var(--ok);transition:width .2s,background .2s}
+.tdrop{min-height:34px;padding:8px;display:flex;flex-direction:column;gap:7px;transition:background .12s}
+.tdrop.is-empty{border:1.5px dashed #22303f;border-radius:8px;margin:6px 8px 8px;display:flex;align-items:center;justify-content:center}
+.tdrop.is-empty::after{content:'⬇ ลากงานวางที่นี่';color:var(--ink-mute);font-size:11.5px}
+.tdrop.hl{background:#12283a;outline:1.5px dashed var(--accent);outline-offset:-3px}
+.tdrop.hl.bad{background:#2b1614;outline-color:var(--bad)}
+.tdrop.hl.bad::before{content:'✕ ประเภทรถไม่ตรงเงื่อนไขงาน';display:block;color:var(--bad);font-size:11px;font-weight:700;text-align:center;padding:2px 0}
+.add-trip{margin:0 8px 8px;border:1px dashed var(--line);border-radius:8px;padding:6px;text-align:center;color:var(--ink-mute);font-size:11.5px;cursor:pointer;user-select:none}
+.add-trip:hover{border-color:var(--accent);color:var(--accent)}
+
+.ord{background:var(--panel);border:1px solid var(--line);border-left-width:3px;border-radius:9px;padding:8px 10px;cursor:grab;position:relative}
+.ord:active{cursor:grabbing}
+.ord.dragging{opacity:.35;transform:scale(.98)}
+.ord.new::after{content:'ใหม่';position:absolute;top:6px;right:8px;background:var(--warn);color:#1a1206;font-size:9px;font-weight:700;padding:0 5px;border-radius:8px}
+.ord.is-split{border-style:dashed}
+.z-sp{border-left-color:#5b9dd9}.z-bkk{border-left-color:#c96b8f}.z-w{border-left-color:#3b9c6e}
+.z-e{border-left-color:#c9902a}.z-n{border-left-color:#8a7fd0}.z-nn{border-left-color:#a37ac2}.z-ne{border-left-color:#c97a4a}
+.z-south{border-left-color:#e05a52}.z-other{border-left-color:#61748c}
+.ord .r1{display:flex;align-items:flex-start;gap:6px}
+.ord .seq{font-family:'IBM Plex Mono';font-size:11px;color:var(--ink-mute);padding-top:2px;min-width:24px}
+.ord .cust{font-size:13.5px;font-weight:600;flex:1;word-break:break-word;line-height:1.3;white-space:normal}
+.ord .wt{font-family:'IBM Plex Mono';font-size:12px;color:var(--ink-dim);font-weight:600}
+.ord .r2{font-size:11.5px;color:var(--ink-mute);margin-top:3px;display:flex;justify-content:space-between;align-items:flex-start;gap:4px}
+.badges{display:flex;gap:3px;flex-wrap:wrap;margin-top:6px}
+.b{font-size:10px;padding:1px 6px;border-radius:5px;font-weight:600;white-space:nowrap}
+.st{border:1px solid transparent;border-radius:4px;padding:1px 5px;font-size:10px;font-weight:600;display:inline-block}
+.st-bad{background:#3b1916;color:#ff7b72;border-color:#8a251c}
+.st-equip{background:#13233a;color:#79c0ff;border-color:#264a7f}
+.st-power{background:#271d0b;color:#e3b341;border-color:#825a17}
+.st-alert{background:#341a3a;color:#d2a8ff;border-color:#733b8a}
+.st-info{background:#12271e;color:#56d364;border-color:#235c34}
+.st-pkg{background:#2a2b2f;color:#c9d1d9;border-color:#4b5056}
+.b-truck{background:#243447;color:#9fc3e8}.b-truck.only4{background:#12271e;color:#6fd3a0}
+.b-load{background:#2a2110;color:#e0b95a}.b-power{background:#1a2733;color:#7fb0e0}
+.b-doc{background:#2b1f2e;color:#d59fd0}.b-time{background:#2a2415;color:#e0c060}
+.b-date{background:#2b1614;color:#e89088}.b-help{background:#241830;color:#c0a0e0}
+.ord.invalid{border-color:var(--bad)!important;background:var(--badbg)}
+.ord .flag{position:absolute;top:-6px;right:-6px;background:var(--bad);color:#fff;font-size:10px;font-weight:700;padding:1px 7px;border-radius:20px;box-shadow:0 2px 6px #0008;z-index:3}
+.card-tools{display:flex;gap:12px;align-items:center;justify-content:flex-end;margin-top:7px;padding-top:5px;border-top:1px dashed var(--line2)}
+.card-tools span{font-size:11px;color:var(--ink-mute);cursor:pointer;user-select:none;white-space:nowrap}
+.card-tools span:hover{color:var(--accent)}
+.card-tools .split-btn:hover{color:var(--warn)}
+.card-tools .merge-btn{color:#7fd0a0}
+.pk{background:#20262e;color:#9fb4c8;border:1px solid #33404f;font-size:10px;padding:1px 6px;border-radius:5px;font-weight:600;white-space:nowrap}
+.pk-ibc{background:#1a2733;color:#79c0ff;border-color:#264a7f}
+.ord .detail{display:none;margin-top:8px;padding-top:8px;border-top:1px dashed var(--line2);font-size:12px;line-height:1.55}
+.ord.expanded .detail{display:block}
+.ord .detail .dl{display:flex;gap:6px;margin-bottom:3px}
+.ord .detail .dl .k{color:var(--ink-mute);flex-shrink:0;width:62px;font-size:11px;padding-top:1px}
+.ord .detail .dl .v{color:var(--ink-dim);flex:1;word-break:break-word;white-space:normal}
+.ord .detail .prod{color:var(--ink);font-weight:500}
+
+.swal2-popup{font-family:'IBM Plex Sans Thai',sans-serif!important;background:#1c2836!important;color:#e6edf5!important;border:1px solid #33465c;border-radius:14px!important}
+.swal2-title{color:#e6edf5!important;font-size:17px!important}
+.swal2-html-container{color:#8ea0b5!important;font-size:13.5px!important}
+.swal2-input{background:#0d141d!important;color:#e6edf5!important;border:1px solid #33465c!important;font-family:'IBM Plex Mono'!important}
+.swal2-confirm{background:#3d6fbe!important}
+#toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%) translateY(90px);background:var(--bad);color:#fff;padding:10px 20px;border-radius:24px;font-size:13px;font-weight:600;box-shadow:0 8px 24px #0009;transition:transform .25s;z-index:50;max-width:82vw;text-align:center}
+#toast.show{transform:translateX(-50%) translateY(0)}
+#toast.ok{background:var(--ok)}
+.empty{color:var(--ink-mute);font-size:12px;text-align:center;padding:24px 8px}
+::-webkit-scrollbar{width:9px;height:9px}::-webkit-scrollbar-thumb{background:#2b3a4d;border-radius:20px}::-webkit-scrollbar-track{background:transparent}
+
+/* CSS สำหรับโหมดดูข้อมูล (Viewer Mode) */
+body.is-viewer .admin-only { display: none !important; }
+body.is-viewer .ord { cursor: default !important; }
+body.is-viewer .tdrop.is-empty::after { display: none !important; }
+body.is-viewer .truck { border-color: #283444 !important; }
+body.is-viewer .truck-head .tname { pointer-events: none; }
+body.is-viewer .drv-select { pointer-events: none; -webkit-appearance: none; appearance: none; background: transparent !important; border: none !important; padding: 0 !important; font-weight: 700; color: var(--accent) !important; width: auto;}
+
+/* Custom styles for Dynamic Row inside Swal */
+.dyn-row { display: flex; gap: 10px; align-items: center; }
+</style>
+</head>
+<body>
+
+<div id="site-login">
+  <div class="login-box">
+    <h2>ระบบจัดรถขนส่ง ITP Bangpoo</h2>
+    <p style="margin-bottom:20px;color:var(--ink-dim)">กรุณาเข้าสู่ระบบด้วย Google Account<br>เพื่อตรวจสอบสิทธิ์เข้าใช้งาน</p>
+    <button id="btn-google-login" class="btn-google">
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" style="width:18px" alt="Google">
+        เข้าสู่ระบบ
+    </button>
+    <div class="login-error" id="login-error">⚠ เกิดข้อผิดพลาดในการเข้าสู่ระบบ หรือปิดหน้าต่างเร็วเกินไป</div>
+  </div>
+</div>
+
+<header>
+  <div class="header-row">
+    <h1>โปรแกรมจัดงานรถขนส่ง ITP Bangpoo <small id="hdr-date"></small></h1>
+    <div class="toolbar">
+      <div class="tb-group">
+        <span style="font-size:16px; cursor:pointer;" onclick="document.getElementById('workspace-date')._flatpickr.open()" title="เลือกวันที่">📅</span>
+        <input type="text" id="workspace-date" class="btn date-btn" placeholder="เลือกวันที่">
+      </div>
+
+      <div class="tb-divider"></div>
+      <div class="tb-group">
+        <div class="seg admin-only" id="undo-redo-seg">
+          <button id="btn-undo" title="ย้อนกลับ (Ctrl+Z)" onclick="doUndo()" disabled>↶ Undo</button>
+          <button id="btn-redo" title="ทำซ้ำ (Ctrl+Y)" onclick="doRedo()" disabled>↷ Redo</button>
+        </div>
+      </div>
+
+      <div class="tb-divider"></div>
+      <div class="tb-group">
+        <button class="btn btn-sm admin-only" id="btn-addorder" style="background:#1c3a5e;color:#8fc2ff;border-color:#2a5a8f">📥 Add Order</button>
+        <button class="btn btn-sm admin-only" id="btn-manual-order" style="background:#5c2b29;color:#ffb3b0;border-color:#8f413d">➕ เพิ่มงาน</button>
+        <input type="file" id="file-order" accept=".xlsm,.xlsx" style="display:none" multiple>
+      </div>
+
+      <div class="tb-divider"></div>
+      <div class="tb-group">
+        <button class="btn btn-sm btn-primary admin-only" id="btn-auto">✨ จัดอัตโนมัติ</button>
+      </div>
+
+      <div class="tb-spacer"></div>
+
+      <div class="tb-group admin-only">
+        <button class="btn btn-sm" id="btn-drivers">👤 คนขับ</button>
+      </div>
+
+      <div class="tb-divider"></div>
+      <div class="tb-group admin-only">
+        <button class="btn btn-sm" id="btn-settings" title="ตั้งค่าเพดาน/จำนวนรถ">⚙ ตั้งค่า</button>
+        <button class="btn btn-sm" id="btn-access" style="background:#1a2e1c;color:#8fd0a0;border-color:#2c5934">👥 สิทธิ์การเข้าใช้</button>
+      </div>
+
+      <div class="session-group">
+        <button class="btn btn-sm" id="btn-logout" style="background:#2b1614;color:#ff7b72;border-color:#8a251c">🚪 ออกจากระบบ</button>
+      </div>
+    </div>
+  </div>
+  <div class="stat">
+    <span class="chip" id="cloud-status" style="font-weight:600;color:var(--ink-dim)">⚪ กำลังเชื่อมต่อ...</span>
+    <span class="chip">จัดแล้ว <b id="s-done">0</b>/<b id="s-total">0</b></span>
+    <span class="chip">รถ <b id="s-trucks">0</b> คัน</span>
+    <span class="chip">เที่ยว <b id="s-trips">0</b></span>
+    <span class="chip">fill/เที่ยว <b id="s-fill">0%</b></span>
+    <span class="chip" id="btn-show-warn" style="cursor:pointer; padding:2px 8px; border-radius:12px; transition:0.2s;" onclick="showWarnings()">เตือน <b id="s-warn" style="color:var(--bad)">0</b></span>
+  </div>
+</header>
+
+<div class="pop-backdrop" id="backdrop" onclick="closePopups()"></div>
+
+<div class="pop centered" id="pickup-modal">
+  <div class="pop-head"><h4>🏢 ตะกร้างานลูกค้ารับเอง (กรองออกอัตโนมัติ)</h4><span class="pop-close" onclick="closePopups()">✕</span></div>
+  <div id="pickup-list" style="display:flex; flex-direction:column; gap:8px; max-height: 400px; overflow-y:auto; padding-right:8px;"></div>
+</div>
+
+<div class="pop centered" id="backlog-modal" style="width:min(700px,90vw)">
+  <div class="pop-head"><h4>📋 ออเดอร์ค้างส่ง (จัดวันนี้ไม่ทัน/ไม่ได้ — รอจัดใหม่ภายหลัง)</h4><span class="pop-close" onclick="closePopups()">✕</span></div>
+  <div id="backlog-list" style="display:flex; flex-direction:column; gap:8px; max-height: 60vh; overflow-y:auto; padding-right:8px;"></div>
+</div>
+
+<div class="pop centered" id="settings">
+  <div class="pop-head"><h4>⚙ ตั้งค่าเพดาน<b style="color:var(--warn)">ต่อเที่ยว</b> · จำนวนรถ</h4><span class="pop-close" onclick="closePopups()">✕</span></div>
+  <div class="grid" style="grid-template-columns:auto 1fr 1fr 1fr">
+    <span></span><span class="hdr">นน.(กก.)</span><span class="hdr">IBC</span><span class="hdr">จำนวนรถ</span>
+    <span>4 ล้อ</span><input id="cap4" type="number" value="3000"><input id="ibc4" type="number" value="2"><input id="fleet4" type="number" value="20">
+    <span>6 ล้อ</span><input id="cap6" type="number" value="8000"><input id="ibc6" type="number" value="6"><input id="fleet6" type="number" value="15">
+    <span>10 ล้อ</span><input id="cap10" type="number" value="12000"><input id="ibc10" type="number" value="10"><input id="fleet10" type="number" value="3">
+    <span>เหมา</span><input id="capHire" type="number" value="16000"><input id="ibcHire" type="number" value="12"><input id="fleetHire" type="number" value="99">
+  </div>
+  <div class="row2"><span>จัดอัตโนมัติ: เที่ยวต่อคัน (โซนใกล้)</span><input id="tripsNear" type="number" value="2"><span style="color:var(--ink-mute);font-size:11px">โซนไกล/เหมา = 1 เที่ยว/คันเสมอ</span></div>
+  <div style="font-size:11px;color:var(--warn)">⚠ รถ 4 ล้อบรรทุกถัง IBC ได้สูงสุด 2 ใบ/เที่ยว เท่านั้น</div>
+</div>
+
+<div class="pop centered" id="access-modal" style="width:min(560px,90vw)">
+  <div class="pop-head"><h4>👥 สิทธิ์การเข้าใช้งาน</h4><span class="pop-close" onclick="closePopups()">✕</span></div>
+  <div style="font-size:11.5px;color:var(--ink-mute);margin-bottom:12px">เพิ่ม/ลบอีเมลที่อนุญาตให้เข้าใช้งานได้ที่นี่ — บัญชีที่ไม่อยู่ในรายชื่อทั้งสองกลุ่มจะ<b style="color:#ff8a80">ล็อกอินเข้าระบบไม่ได้</b></div>
+
+  <div style="margin-bottom:16px">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <b style="color:#e0b95a;font-size:13px">🔓 คนจัดรถ (แก้ไข/ลากจัดได้)</b>
+    </div>
+    <div id="admin-email-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px"></div>
+    <div style="display:flex;gap:6px">
+      <input type="email" id="new-admin-email" placeholder="เพิ่มอีเมลคนจัดรถ" style="flex:1;background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:7px;padding:7px 10px;font-size:13px">
+      <button class="btn btn-sm" id="btn-add-admin" style="background:#2a2110;color:#e0b95a;border-color:#5c4723">+ เพิ่ม</button>
+    </div>
+  </div>
+
+  <div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <b style="color:#8fb8e8;font-size:13px">👁️ คนดูข้อมูล (ดูอย่างเดียว)</b>
+    </div>
+    <div id="viewer-email-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px"></div>
+    <div style="display:flex;gap:6px">
+      <input type="email" id="new-viewer-email" placeholder="เพิ่มอีเมลคนดูข้อมูล" style="flex:1;background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:7px;padding:7px 10px;font-size:13px">
+      <button class="btn btn-sm" id="btn-add-viewer" style="background:#14202f;color:#8fb8e8;border-color:#264a7f">+ เพิ่ม</button>
+    </div>
+  </div>
+</div>
+
+<div class="pop centered" id="driverpop">
+  <div class="pop-head"><h4>👤 ทะเบียนคนขับรถ — เพิ่ม/ลบ/แก้ไขได้ · เลือกใส่รถที่หัวการ์ดรถ</h4><span class="pop-close" onclick="closePopups()">✕</span></div>
+  <table class="drv-table" id="drv-table">
+    <thead><tr>
+      <th style="width:30%">ชื่อคนขับ</th>
+      <th style="width:25%">ทะเบียนรถ</th>
+      <th style="width:25%">ประเภทรถ</th>
+      <th style="width:7%;text-align:center">วอ.8</th>
+      <th style="width:7%;text-align:center">ท.4</th>
+      <th style="width:6%"></th>
+    </tr></thead>
+    <tbody id="drv-body"></tbody>
+  </table>
+  <button class="btn btn-sm" id="btn-add-driver">+ เพิ่มคนขับ</button>
+  <div style="font-size:11px;color:var(--ink-mute);margin-top:8px">ถ้ารถมีงานที่ต้องใช้ วอ.8 / ท.4 แต่คนขับที่เลือกไม่มีคุณสมบัติ ระบบจะเตือนที่หัวการ์ดรถทันที</div>
+</div>
+
+<div class="filterbar">
+  <span class="lbl">แสดงคอลัมน์:</span>
+  <span class="col-toggle on f4" data-col="4"><span class="dot d4"></span>4 ล้อ</span>
+  <span class="col-toggle on f6" data-col="6"><span class="dot d6"></span>6 ล้อ</span>
+  <span class="col-toggle on f10" data-col="10"><span class="dot d10"></span>10 ล้อ</span>
+  <span class="col-toggle on fhire" data-col="hire"><span class="dot dhire"></span>เหมา</span>
+  <div style="width:1px;height:16px;background:var(--line);margin:0 4px"></div>
+  <span class="lbl">รอบส่ง:</span>
+  <span class="time-filter on morn" data-time="morning">☀️ เช้า (<b id="c-morn">0</b>)</span>
+  <span class="time-filter on bnoon" data-time="before_noon">🕛 ก่อนเที่ยง (<b id="c-bnoon">0</b>)</span>
+  <span class="time-filter on aft" data-time="afternoon">🌤️ บ่าย (<b id="c-aft">0</b>)</span>
+  <span class="time-filter on eve" data-time="evening">🌙 เย็น (<b id="c-eve">0</b>)</span>
+  <span class="time-filter on any" data-time="any">🕒 ทั่วไป (<b id="c-any">0</b>)</span>
+  <div style="width:1px;height:16px;background:var(--line);margin:0 4px"></div>
+  <button class="btn btn-sm" id="btn-pickup" style="background:#2a1a18;color:#f09f90;border-color:#5c352b">🏢 รับเอง (<span id="c-pickup">0</span>)</button>
+  <button class="btn btn-sm" id="btn-backlog" style="background:#2a2410;color:#f0d090;border-color:#5c4f23">📋 ค้างส่ง (<span id="c-backlog">0</span>)</button>
+  <button class="btn btn-sm" id="btn-expand">▾ ขยายรายละเอียด</button>
+  <button class="btn btn-sm admin-only" id="btn-clear" style="background:#2b1614;color:#ff7b72;border-color:#8a251c">✕ ล้างรถทั้งหมด</button>
+  <button class="btn btn-sm admin-only" id="btn-clear-all" style="background:#3b1916;color:#ff7b72;border-color:#8a251c">🗑️ ลบออเดอร์ทั้งหมด</button>
+  <span style="margin-left:auto;color:var(--ink-mute);font-size:11px">✂ = แบ่งออเดอร์ลงหลายคัน · ลากใส่/ออก/ย้ายข้ามคันได้อิสระ</span>
+</div>
+
+<div class="wrap">
+  <aside class="pool" id="pool-aside">
+    <div class="pool-head">
+      <div class="title"><b>ออเดอร์ที่ยังไม่ได้จัด</b><span class="n" id="pool-n">0</span></div>
+      <input class="search" id="search" placeholder="ค้นหา ลูกค้า / จังหวัด / สินค้า…">
+      <div class="zones" id="zones"></div>
+    </div>
+    <div class="pool-list" id="pool" data-pool="1"></div>
+  </aside>
+  <main class="board" id="board"></main>
+</div>
+<div id="toast"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+const appId = 'itp-dispatch-app';
+
+// 🌟🌟 รายชื่อ "คนจัดรถ" เริ่มต้น — ใช้ครั้งแรกที่ยังไม่เคยตั้งค่าสิทธิ์ผ่านหน้าเว็บเท่านั้น
+// หลังจากนี้ให้จัดการอีเมลทั้งหมด (คนจัดรถ/คนดูข้อมูล) ผ่านปุ่ม "👥 สิทธิ์การเข้าใช้งาน" ในแอปแทน 🌟🌟
+const ADMIN_EMAILS_BOOTSTRAP = [
+  'interpretivebp@gmail.com',
+  'singkrutkam.1234@gmail.com',
+  'nipaporn.142536@gmail.com'
+];
+let ACCESS_ADMINS = [];   // คนจัดรถ — แก้ไข/ลากจัดได้
+let ACCESS_VIEWERS = [];  // คนดูข้อมูล — ดูอย่างเดียว
+let accessControlLoaded = false;
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDrfkzZnUF-UHyAeSiwTLb3b4jPoNbfo-c", 
+  authDomain: "itp-dispatch-cloud.firebaseapp.com",
+  projectId: "itp-dispatch-cloud",
+  storageBucket: "itp-dispatch-cloud.firebasestorage.app",
+  messagingSenderId: "134176937553",
+  appId: "1:134176937553:web:8a8b2301913da777a90a70"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const provider = new GoogleAuthProvider();
+let syncingDates = new Set(); // เก็บ "วันที่" ที่เพิ่งเขียนขึ้น cloud (กันไม่ให้ระบบดึงข้อมูลของตัวเองกลับมาซ้ำ) — แยกตามวันที่ ไม่ใช้ flag รวมทั้งระบบ เพื่อไม่ให้การเขียนวันหนึ่งไปบล็อกการโหลดของอีกวันหนึ่ง
+
+window.isViewerMode = true;
+window.orderDays = new Set(); 
+
+const _td = new Date();
+const todayStr = `${_td.getFullYear()}-${("0" + (_td.getMonth() + 1)).slice(-2)}-${("0" + _td.getDate()).slice(-2)}`;
+window.todayStr = todayStr; // เผยแพร่เป็น global เพื่อให้ inline onclick="...todayStr..." เรียกใช้ได้ (module scope ไม่รั่วไปยัง global ปกติ)
+let currentDateStr = todayStr;
+
+const _fd = new Date();
+_fd.setDate(_fd.getDate() + 30);
+const maxDateStr = `${_fd.getFullYear()}-${("0" + (_fd.getMonth() + 1)).slice(-2)}-${("0" + _fd.getDate()).slice(-2)}`;
+
+document.getElementById('btn-google-login').onclick = () => {
+    document.getElementById('login-error').style.display = 'none';
+    signInWithPopup(auth, provider).catch(err => {
+        console.error("Login Error:", err);
+        document.getElementById('login-error').style.display = 'block';
+    });
+};
+
+const jsNorm = s => (s == null ? '' : String(s).replace(/\u00a0/g, ' ').replace(/\u200b/g, '').trim());
+const nz = jsNorm;
+
+const PROVINCES = ["กรุงเทพมหานคร","กรุงเทพฯ","สมุทรปราการ","นนทบุรี","ปทุมธานี","พระนครศรีอยุธยา","อ่างทอง","ลพบุรี","สิงห์บุรี","ชัยนาท","สระบุรี","ชลบุรี","ระยอง","จันทบุรี","ตราด","ฉะเชิงเทรา","ปราจีนบุรี","นครนายก","สระแก้ว","นครราชสีมา","บุรีรัมย์","สุรินทร์","ศรีสะเกษ","อุบลราชธานี","ยโสธร","ชัยภูมิ","อำนาจเจริญ","บึงกาฬ","หนองบัวลำภู","ขอนแก่น","อุดรธานี","เลย","หนองคาย","มหาสารคาม","ร้อยเอ็ด","กาฬสินธุ์","สกลนคร","นครพนม","มุกดาหาร","เชียงใหม่","ลำพูน","ลำปาง","อุตรดิตถ์","แพร่","น่าน","พะเยา","เชียงราย","แม่ฮ่องสอน","นครสวรรค์","อุทัยธานี","กำแพงเพชร","ตาก","สุโขทัย","พิษณุโลก","พิจิตร","เพชรบูรณ์","ราชบุรี","กาญจนบุรี","สุพรรณบุรี","นครปฐม","สมุทรสาคร","สมุทรสงคราม","เพชรบุรี","ประจวบคีรีขันธ์","นครศรีธรรมราช","กระบี่","พังงา","ภูเก็ต","สุราษฎร์ธานี","ระนอง","ชุมพร","สงขลา","สตูล","ตรัง","พัทลุง","ปัตตานี","ยะลา","นราธิวาส"];
+const PROV_ZONE={
+  'สมุทรปราการ':'สป.',
+  'กรุงเทพฯ':'กทม.','กรุงเทพมหานคร':'กทม.',
+  'สมุทรสาคร':'ตต.','นครปฐม':'ตต.','ราชบุรี':'ตต.','เพชรบุรี':'ตต.','ประจวบคีรีขันธ์':'ตต.','กาญจนบุรี':'ตต.','สมุทรสงคราม':'ตต.',
+  'ชลบุรี':'ตอ.','ระยอง':'ตอ.','ปราจีนบุรี':'ตอ.','ฉะเชิงเทรา':'ตอ.','จันทบุรี':'ตอ.','ตราด':'ตอ.','สระแก้ว':'ตอ.',
+  'นครนายก':'กลาง','สระบุรี':'กลาง','อ่างทอง':'กลาง','พระนครศรีอยุธยา':'กลาง','ลพบุรี':'กลาง','ปทุมธานี':'กลาง','นนทบุรี':'กลาง','สุพรรณบุรี':'กลาง','นครสวรรค์':'กลาง','ชัยนาท':'กลาง','สิงห์บุรี':'กลาง','อุทัยธานี':'กลาง',
+  'นครราชสีมา':'อีสาน','ร้อยเอ็ด':'อีสาน','ขอนแก่น':'อีสาน','มหาสารคาม':'อีสาน','บุรีรัมย์':'อีสาน','สุรินทร์':'อีสาน','ศรีสะเกษ':'อีสาน','อุบลราชธานี':'อีสาน','ยโสธร':'อีสาน','ชัยภูมิ':'อีสาน','อำนาจเจริญ':'อีสาน','บึงกาฬ':'อีสาน','หนองบัวลำภู':'อีสาน','อุดรธานี':'อีสาน','เลย':'อีสาน','หนองคาย':'อีสาน','กาฬสินธุ์':'อีสาน','สกลนคร':'อีสาน','นครพนม':'อีสาน','มุกดาหาร':'อีสาน',
+  'เพชรบูรณ์':'เหนือ','เชียงใหม่':'เหนือ','เชียงราย':'เหนือ','ลำปาง':'เหนือ','ลำพูน':'เหนือ','แม่ฮ่องสอน':'เหนือ','น่าน':'เหนือ','พะเยา':'เหนือ','แพร่':'เหนือ','อุตรดิตถ์':'เหนือ','สุโขทัย':'เหนือ','ตาก':'เหนือ','กำแพงเพชร':'เหนือ','พิจิตร':'เหนือ','พิษณุโลก':'เหนือ',
+  'ภูเก็ต':'ใต้','ชุมพร':'ใต้','สุราษฎร์ธานี':'ใต้','สงขลา':'ใต้','นครศรีธรรมราช':'ใต้','กระบี่':'ใต้','พังงา':'ใต้','ระนอง':'ใต้','สตูล':'ใต้','ตรัง':'ใต้','พัทลุง':'ใต้','ปัตตานี':'ใต้','ยะลา':'ใต้','นราธิวาส':'ใต้'
+};
+
+function provOf(txt) {
+  const m = txt.match(/จ\.\s*([ก-๙]+)/);
+  if (m) return m[1];
+  if (/กรุงเทพ|แขวง/.test(txt)) return 'กรุงเทพฯ';
+  for (const k of ['บางปู','บางพลี','บางเสาธง','สำโรง','พระประแดง','เทพารักษ์','แพรกษา']) {
+    if (txt.includes(k)) return 'สมุทรปราการ';
+  }
+  for (const prov of PROVINCES) {
+    if (txt.includes(prov)) {
+      if(prov === 'กรุงเทพมหานคร') return 'กรุงเทพฯ';
+      return prov;
+    }
+  }
+  return '';
+}
+
+function parseTruck(text){
+  const t = text.replace(/\s/g,'');
+  const helper = /เด็กติดรถ|พนง\.?ติดรถ|มีเด็ก|คนติดรถ/.test(t);
+  if(/4ล้อเท่า/.test(t)) return [[4], helper];
+  if(/ปิคอัพ|ปิกอัพ/.test(t)) return [[4], helper];
+  if(/เข้าได้ทุกชนิด|ทุกชนิด/.test(t)) return [null, helper];
+  const forbid10 = /10ล้อเข้าไม่ได้|10ล้อไม่ได้/.test(t);
+  let allowed = new Set();
+  if(/4-10ล้อ/.test(t)){ allowed.add(4); allowed.add(6); allowed.add(10); }
+  if(/4-6ล้อ|4,6ล้อ/.test(t)){ allowed.add(4); allowed.add(6); }
+  if(/6-10ล้อ/.test(t)){ allowed.add(6); allowed.add(10); }
+  let m; const re = /(\d+)\s*,?\s*ล้อ/g;
+  while((m=re.exec(t))) if([4,6,10].includes(+m[1])) allowed.add(+m[1]);
+  if(/6\s*,\s*10\s*ล้อ/.test(t)){ allowed.add(6); allowed.add(10); }
+  if(forbid10) allowed.delete(10);
+  return [allowed.size ? [...allowed].sort((a,b)=>a-b) : null, helper];
+}
+
+let historyStack = [];
+let historyIndex = -1;
+
+let ORDERS = [];
+let BACKLOG_ORDERS = []; // ออเดอร์ค้างส่ง — ไม่ผูกกับวันที่ใดวันหนึ่ง เก็บแยกต่างหาก
+let nextBacklogSeq = 1;
+const CAP={4:3000, 6:8000, 10:12000, hire:16000};
+const IBC_CAP={4:2, 6:6, 10:10, hire:12};  
+const FLEET={4:20, 6:15, 10:3, hire:99};
+let TRIPS_NEAR=2;
+
+const TM={'4':{label:'4 ล้อ',cls:'col-4'},'6':{label:'6 ล้อ',cls:'col-6'},'10':{label:'10 ล้อ',cls:'col-10'},'hire':{label:'รถเหมา',cls:'col-hire'}};
+const ZCLS={'สป.':'z-sp','กทม.':'z-bkk','ตต.':'z-w','ตอ.':'z-e','กลาง':'z-n','เหนือ':'z-nn','อีสาน':'z-ne','ใต้':'z-south','อื่นๆ':'z-other'};
+const ZLBL={all:'ทั้งหมด','สป.':'สมุทรปราการ','กทม.':'กรุงเทพ','ตต.':'ตะวันตก','ตอ.':'ตะวันออก','กลาง':'กลาง','เหนือ':'เหนือ','อีสาน':'อีสาน','ใต้':'ใต้','อื่นๆ':'อื่นๆ'};
+
+const DRV_TYPES = ['4 ล้อ', '6 ล้อ', '10 ล้อ', 'รถบริษัท', 'รถเสริม'];
+let DRIVERS=[
+  {id:1, name:'เจตนิพัทธ์', plate:'', type:'4 ล้อ', wor8:true, lic4:false},
+  {id:2, name:'ศักดิ์นรินทร์', plate:'', type:'4 ล้อ', wor8:false, lic4:false},
+  {id:3, name:'อนุชา 1', plate:'', type:'4 ล้อ', wor8:false, lic4:false},
+  {id:4, name:'อนุชา 2', plate:'', type:'4 ล้อ', wor8:false, lic4:false},
+  {id:5, name:'สมบัติ', plate:'', type:'4 ล้อ', wor8:true, lic4:false},
+  {id:6, name:'พัตชพงษ์', plate:'', type:'4 ล้อ', wor8:false, lic4:false},
+  {id:7, name:'เอกชัย', plate:'', type:'4 ล้อ', wor8:true, lic4:true},
+  {id:8, name:'สมเจตร์', plate:'', type:'4 ล้อ', wor8:false, lic4:false},
+  {id:9, name:'คำนึง', plate:'', type:'6 ล้อ', wor8:true, lic4:false},
+  {id:10, name:'สมัย', plate:'', type:'6 ล้อ', wor8:false, lic4:false},
+  {id:11, name:'ชวดล', plate:'', type:'10 ล้อ', wor8:true, lic4:false},
+  {id:12, name:'บัญชา', plate:'', type:'10 ล้อ', wor8:true, lic4:true},
+  {id:13, name:'ธีรยุทธ', plate:'67-7408', type:'10 ล้อ', wor8:true, lic4:false},
+];
+let nextDrvId=100;
+
+let assign={}, trucks=[], tid=1, activeZone='all', searchTerm='';
+let visCols={'4':true, '6':true, '10':true, 'hire':true};
+let timeFilters={morning:true, before_noon:true, afternoon:true, evening:true, any:true};
+let expandedAll=false;
+let SPLITS={}, nextGrp=1;
+window._dragSeq=null;
+
+const byId = s => ORDERS.find(o=>o.seq===s);
+const lbl = o => o.plabel || ('#' + (o.rawSeq !== undefined && o.rawSeq !== '' ? o.rawSeq : o.seq));
+const oAllowed = o => o.truck===null ? [4,6,10] : o.truck;
+const oPump = o => (o.loads||[]).includes('โหลด');
+const fitsType = (o,type) => type==='hire' ? true : (o.truck===null ? true : o.truck.includes(Number(type)));
+const truckTxt = o => {
+    if(o.truck && o.truck.includes('pickup')) return 'รับเอง';
+    return o.truck===null ? 'ทุกชนิด' : o.truck.join('/');
+};
+const tripWeight = (t,i) => t.trips[i].reduce((s,q) => s + (byId(q)?.wt||0), 0);
+const tripIbc = (t,i) => t.trips[i].reduce((s,q) => s + (byId(q)?.ibc||0), 0);
+const truckWeight = t => t.trips.reduce((s,_,i) => s + tripWeight(t,i), 0);
+const truckStops = t => t.trips.reduce((s,tr) => s + tr.length, 0);
+const driverOf = t => DRIVERS.find(d=>d.id===t.driver);
+
+window.fetchOrderDays = async function() {
+    if (!auth.currentUser) return;
+    try {
+        const colRef = collection(db, 'artifacts', appId, 'public', 'data', 'board_state');
+        const snap = await getDocs(colRef);
+        window.orderDays.clear();
+        snap.forEach(doc => {
+            const data = doc.data();
+            if (data.payload) {
+                try {
+                    const parsed = JSON.parse(data.payload);
+                    if (parsed.ORDERS && parsed.ORDERS.length > 0) window.orderDays.add(doc.id);
+                } catch(e) {}
+            }
+        });
+        const fp = document.getElementById('workspace-date')._flatpickr;
+        if(fp) fp.redraw();
+    } catch(err) { console.log('Fetch calendar error', err); }
+};
+
+// ---- ออเดอร์ค้างส่ง (backlog) — เก็บแยกจากบอร์ดรายวัน sync ทันทีข้ามอุปกรณ์ ----
+function subscribeToBacklog() {
+    if (window._unsubBacklog) { window._unsubBacklog(); window._unsubBacklog = null; }
+    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'board_state', '_backlog');
+    window._unsubBacklog = onSnapshot(docRef, (snap) => {
+        if (snap.exists() && snap.data().payload) {
+            try {
+                const parsed = JSON.parse(snap.data().payload);
+                BACKLOG_ORDERS = parsed.BACKLOG_ORDERS || [];
+                nextBacklogSeq = parsed.nextBacklogSeq || 1;
+            } catch(e) {}
+        } else { BACKLOG_ORDERS = []; }
+        renderBacklogList();
+    }, (error) => console.error('Backlog sync error', error));
+}
+async function pushBacklogToCloud() {
+    if (!auth.currentUser) return;
+    try {
+        const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'board_state', '_backlog');
+        await setDoc(docRef, { payload: JSON.stringify({ BACKLOG_ORDERS, nextBacklogSeq }) });
+    } catch(err) { console.error('Backlog push failed', err); }
+}
+
+// ---- สิทธิ์การเข้าใช้งาน (คนจัดรถ / คนดูข้อมูล) — จัดการผ่านหน้าเว็บ ไม่ต้องแก้โค้ด ----
+async function loadAccessControl() {
+    try {
+        const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'board_state', '_access');
+        const snap = await getDoc(docRef);
+        if (snap.exists() && snap.data().payload) {
+            const parsed = JSON.parse(snap.data().payload);
+            ACCESS_ADMINS = parsed.admins || [];
+            ACCESS_VIEWERS = parsed.viewers || [];
+        } else {
+            // ยังไม่เคยตั้งค่าเลย — เริ่มต้นด้วยรายชื่อคนจัดรถชุดแรก แล้วบันทึกไว้เป็นค่าเริ่มต้น
+            ACCESS_ADMINS = [...ADMIN_EMAILS_BOOTSTRAP];
+            ACCESS_VIEWERS = [];
+            await setDoc(docRef, { payload: JSON.stringify({ admins: ACCESS_ADMINS, viewers: ACCESS_VIEWERS }) });
+        }
+    } catch(err) {
+        console.error('Load access control failed', err);
+        ACCESS_ADMINS = [...ADMIN_EMAILS_BOOTSTRAP]; // เผื่อโหลดไม่ได้ ใช้รายชื่อเริ่มต้นกันล็อกตัวเองออกทั้งหมด
+    }
+    accessControlLoaded = true;
+}
+function subscribeAccessControl() {
+    if (window._unsubAccess) { window._unsubAccess(); window._unsubAccess = null; }
+    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'board_state', '_access');
+    window._unsubAccess = onSnapshot(docRef, (snap) => {
+        if (snap.exists() && snap.data().payload) {
+            try {
+                const parsed = JSON.parse(snap.data().payload);
+                ACCESS_ADMINS = parsed.admins || [];
+                ACCESS_VIEWERS = parsed.viewers || [];
+                accessControlLoaded = true;
+            } catch(e) {}
+        }
+        renderAccessList();
+        // ถ้าบัญชีที่ใช้อยู่ถูกถอดสิทธิ์ระหว่างใช้งาน ให้ออกจากระบบทันที
+        if (auth.currentUser) {
+            const e = auth.currentUser.email;
+            if (!ACCESS_ADMINS.includes(e) && !ACCESS_VIEWERS.includes(e)) {
+                toast('⚠ บัญชีนี้ถูกถอดสิทธิ์การเข้าใช้งานแล้ว', false);
+                signOut(auth);
+            } else {
+                // สิทธิ์อาจเปลี่ยน (เช่น จาก viewer เป็น admin) ให้ปรับ UI ตาม
+                window.isViewerMode = !ACCESS_ADMINS.includes(e);
+                applyRoleUI(); render();
+            }
+        }
+    }, (error) => console.error('Access control sync error', error));
+}
+async function pushAccessControl() {
+    try {
+        const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'board_state', '_access');
+        await setDoc(docRef, { payload: JSON.stringify({ admins: ACCESS_ADMINS, viewers: ACCESS_VIEWERS }) });
+    } catch(err) { console.error('Push access control failed', err); toast('⚠ บันทึกสิทธิ์ไม่สำเร็จ: ' + err.message); }
+}
+function renderAccessList() {
+    const adminEl = document.getElementById('admin-email-list');
+    const viewerEl = document.getElementById('viewer-email-list');
+    if (!adminEl || !viewerEl) return;
+    const row = (email, isAdmin) => {
+        const d = document.createElement('div');
+        d.style.cssText = 'display:flex;align-items:center;gap:8px;background:var(--panel2);border:1px solid var(--line);border-radius:7px;padding:6px 10px';
+        d.innerHTML = `<span style="flex:1;font-size:12.5px;word-break:break-all">${email}</span><span style="cursor:pointer;color:var(--ink-mute);font-size:14px" title="ลบ">✕</span>`;
+        d.querySelector('span:last-child').onclick = () => (isAdmin ? removeAdminEmail(email) : removeViewerEmail(email));
+        return d;
+    };
+    adminEl.innerHTML = ''; ACCESS_ADMINS.forEach(e => adminEl.appendChild(row(e, true)));
+    if (!ACCESS_ADMINS.length) adminEl.innerHTML = '<div class="empty" style="padding:8px">— ยังไม่มีคนจัดรถ —</div>';
+    viewerEl.innerHTML = ''; ACCESS_VIEWERS.forEach(e => viewerEl.appendChild(row(e, false)));
+    if (!ACCESS_VIEWERS.length) viewerEl.innerHTML = '<div class="empty" style="padding:8px">— ยังไม่มีคนดูข้อมูล —</div>';
+}
+function normEmail(v) { return (v || '').trim().toLowerCase(); }
+window.addAdminEmail = function() {
+    const inp = document.getElementById('new-admin-email'); const email = normEmail(inp.value);
+    if (!email || !email.includes('@')) { toast('⚠ กรอกอีเมลให้ถูกต้อง'); return; }
+    ACCESS_VIEWERS = ACCESS_VIEWERS.filter(e => e !== email); // ถ้าเคยเป็น viewer อยู่ ให้ย้ายมาเป็น admin แทน ไม่ซ้ำสองที่
+    if (!ACCESS_ADMINS.includes(email)) ACCESS_ADMINS.push(email);
+    inp.value = ''; renderAccessList(); pushAccessControl();
+    toast(`✅ เพิ่ม ${email} เป็นคนจัดรถแล้ว`, true);
+};
+window.removeAdminEmail = function(email) {
+    if (ACCESS_ADMINS.length <= 1) { toast('⚠ ต้องมีคนจัดรถอย่างน้อย 1 คน ลบคนสุดท้ายไม่ได้ (จะล็อกทุกคนออกจากระบบ)'); return; }
+    if (auth.currentUser && auth.currentUser.email === email) { toast('⚠ ลบสิทธิ์ตัวเองไม่ได้ ให้ผู้ดูแลคนอื่นลบให้'); return; }
+    ACCESS_ADMINS = ACCESS_ADMINS.filter(e => e !== email);
+    renderAccessList(); pushAccessControl();
+    toast(`ลบสิทธิ์คนจัดรถของ ${email} แล้ว`, true);
+};
+window.addViewerEmail = function() {
+    const inp = document.getElementById('new-viewer-email'); const email = normEmail(inp.value);
+    if (!email || !email.includes('@')) { toast('⚠ กรอกอีเมลให้ถูกต้อง'); return; }
+    if (ACCESS_ADMINS.includes(email)) { toast('⚠ อีเมลนี้เป็นคนจัดรถอยู่แล้ว'); return; }
+    if (!ACCESS_VIEWERS.includes(email)) ACCESS_VIEWERS.push(email);
+    inp.value = ''; renderAccessList(); pushAccessControl();
+    toast(`✅ เพิ่ม ${email} เป็นคนดูข้อมูลแล้ว`, true);
+};
+window.removeViewerEmail = function(email) {
+    ACCESS_VIEWERS = ACCESS_VIEWERS.filter(e => e !== email);
+    renderAccessList(); pushAccessControl();
+    toast(`ลบสิทธิ์คนดูข้อมูลของ ${email} แล้ว`, true);
+};
+window.sendToBacklog = function(seq) {
+    if (window.isViewerMode) return;
+    const o = byId(seq); if(!o) return;
+    removeAssign(seq);
+    ORDERS = ORDERS.filter(x => x.seq !== seq);
+    delete o._new; o._heldFrom = currentDateStr; o._heldAt = Date.now(); o.seq = nextBacklogSeq++;
+    BACKLOG_ORDERS.push(o);
+    let oldS = saveScrollPositions(); initZones(); render(oldS); renderBacklogList();
+    saveState(); pushBacklogToCloud();
+    toast(`📋 ส่ง ${lbl(o)} ${o.cust} ไปเก็บที่ออเดอร์ค้างแล้ว`, true);
+};
+window.bringBackFromBacklog = function(seq) {
+    if (window.isViewerMode) return;
+    const idx = BACKLOG_ORDERS.findIndex(o => o.seq === seq); if(idx<0) return;
+    const o = BACKLOG_ORDERS.splice(idx,1)[0];
+    delete o._heldFrom; delete o._heldAt;
+    o.seq = (ORDERS.length ? Math.max(...ORDERS.map(x=>x.seq)) : 0) + 1;
+    o._new = true;
+    ORDERS.push(o);
+    let oldS = saveScrollPositions(); initZones(); render(oldS); renderBacklogList();
+    saveState(); pushBacklogToCloud();
+    toast(`↩ นำ ${o.cust} กลับมาจัดวันนี้แล้ว`, true);
+};
+function renderBacklogList() {
+    const el = document.getElementById('c-backlog'); if(el) el.textContent = BACKLOG_ORDERS.length;
+    const pModal = document.getElementById('backlog-list'); if(!pModal) return;
+    if(!BACKLOG_ORDERS.length) { pModal.innerHTML = '<div class="empty">ไม่มีออเดอร์ค้างส่ง</div>'; return; }
+    pModal.innerHTML = '';
+    BACKLOG_ORDERS.slice().sort((a,b)=>(b._heldAt||0)-(a._heldAt||0)).forEach(o => {
+        const item0 = (o.items && o.items.length) ? String(o.items[0]).split('·')[0].trim() : '';
+        const d = document.createElement('div');
+        d.className = 'ord';
+        d.style.borderLeftColor = '#e0a63a';
+        const heldInfo = o._heldFrom ? `<span class="b" style="background:#2a2410;color:#f0d090">⏸ ค้างจากวันที่ ${thaiDateLabel(o._heldFrom)}</span>` : '';
+        d.innerHTML = `
+            <div class="r1"><span class="seq">${lbl(o)}</span><span class="cust">${o.cust}</span></div>
+            <div class="r1" style="margin-top:3px;align-items:center;gap:4px;flex-wrap:wrap"><span class="wt" style="margin-left:auto">⚖️ ${o.wt.toLocaleString()} กก.</span></div>
+            <div class="r2"><span>📍 ${o.prov} · ${item0}</span></div>
+            <div class="badges">${heldInfo}${badgeHtml(o)}</div>
+            <div class="card-tools">
+              <span class="exp-btn">รายละเอียด ▾</span>
+              ${window.isViewerMode?'':`<span class="split-btn" onclick="event.stopPropagation();bringBackFromBacklog(${o.seq})" style="color:#7fd0a0">↩ นำกลับมาจัดวันนี้</span>`}
+            </div>
+            ${detailHtml(o)}
+        `;
+        const tog = e => { if(window.getSelection().toString().length>0) return; if(e.target.closest('.split-btn')) return; d.classList.toggle('expanded'); const eb = d.querySelector('.exp-btn'); if(eb) eb.textContent = d.classList.contains('expanded') ? 'ย่อ ▴' : 'รายละเอียด ▾'; };
+        d.querySelector('.exp-btn').addEventListener('click', tog);
+        d.querySelector('.cust').addEventListener('click', tog);
+        pModal.appendChild(d);
+    });
+}
+// ---- ส่งออเดอร์ล่วงหน้าไปวันอื่น ----
+window.forwardOrderPrompt = function(seq) {
+    if (window.isViewerMode) return;
+    const o = byId(seq); if(!o) return;
+    if(!window.Swal){ toast('ต้องมี SweetAlert'); return; }
+    Swal.fire({
+        title: '📅 ส่งออเดอร์ล่วงหน้า',
+        html: `<div style="text-align:left;line-height:1.7"><b style="color:#e6edf5">${lbl(o)} ${o.cust}</b><br><span style="color:#8ea0b5;font-size:12.5px">ออเดอร์นี้จะถูกย้ายออกจากวันที่ ${thaiDateLabel(currentDateStr)} ไปวันที่เลือก</span><br><br>เลือกวันที่ต้องการส่งไป:<br>
+          <input id="fw-date" type="text" class="swal2-input" placeholder="เลือกวันที่" readonly style="cursor:pointer;width:80%">
+        </div>`,
+        showCancelButton: true, confirmButtonText: '📅 ส่งไปวันที่เลือก', cancelButtonText: 'ยกเลิก',
+        didOpen: () => {
+            flatpickr('#fw-date', { locale:'th', dateFormat:'Y-m-d', altInput:true, altFormat:'d/m/Y', minDate: todayStr,
+                formatDate: function(date, format) { if(format==='d/m/Y'){ const d=("0"+date.getDate()).slice(-2); const m=("0"+(date.getMonth()+1)).slice(-2); const y=date.getFullYear()+543; return `${d}/${m}/${y}`; } return flatpickr.formatDate(date, format); }
+            });
+        },
+        preConfirm: () => {
+            const v = document.getElementById('fw-date').value;
+            if(!v){ Swal.showValidationMessage('กรุณาเลือกวันที่'); return false; }
+            if(v === currentDateStr){ Swal.showValidationMessage('เลือกวันที่อื่นที่ไม่ใช่วันนี้ที่เปิดอยู่'); return false; }
+            return v;
+        }
+    }).then(r => { if(r.isConfirmed) forwardOrderToDate(o, r.value); });
+};
+async function forwardOrderToDate(o, targetDate) {
+    removeAssign(o.seq);
+    ORDERS = ORDERS.filter(x => x.seq !== o.seq);
+    let oldS = saveScrollPositions(); initZones(); render(oldS);
+    saveState();
+
+    const clone = JSON.parse(JSON.stringify(o));
+    delete clone._grp; delete clone._new; clone._forwardedFrom = currentDateStr;
+
+    try {
+        const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'board_state', targetDate);
+        const snap = await getDoc(docRef);
+        let data = { ORDERS:[], trucks:[], assign:{}, SPLITS:{}, nextGrp:1, tid:1, DRIVERS, nextDrvId };
+        if (snap.exists() && snap.data().payload) { try { data = JSON.parse(snap.data().payload); } catch(e){} }
+        const existing = data.ORDERS || [];
+        clone.seq = (existing.length ? Math.max(...existing.map(x=>x.seq)) : 0) + 1;
+        clone._new = true;
+        existing.push(clone);
+        data.ORDERS = existing;
+        await setDoc(docRef, { payload: JSON.stringify(data) });
+        toast(`📅 ส่ง ${clone.cust} ไปวันที่ ${thaiDateLabel(targetDate)} แล้ว`, true);
+        fetchOrderDays();
+    } catch(err) {
+        console.error(err);
+        toast('⚠ ส่งล่วงหน้าไม่สำเร็จ: ' + err.message);
+    }
+}
+
+function subscribeToBoard(userEmail, dateStr) {
+    if (window._unsubCloud) { window._unsubCloud(); window._unsubCloud = null; }
+    document.getElementById('cloud-status').innerHTML = '⚪ กำลังเชื่อมต่อ...';
+    
+    ORDERS = []; trucks = []; assign = {}; SPLITS = {}; nextGrp = 1; tid = 1;
+
+    let firstSnapshot = true;
+    window._boardReady = new Promise(resolve => { window._resolveBoardReady = resolve; });
+    const markReady = () => { if (firstSnapshot) { firstSnapshot = false; window._resolveBoardReady(); } };
+
+    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'board_state', dateStr);
+    window._unsubCloud = onSnapshot(docRef, (snap) => {
+        if (snap.exists()) {
+            const docData = snap.data();
+            let parsedData = null;
+            if (docData.payload) {
+                try { parsedData = JSON.parse(docData.payload); } catch(e){}
+            }
+            if (parsedData && !syncingDates.has(dateStr)) restoreStateFromCloud(parsedData);
+        } else {
+            if (dateStr >= todayStr) { restoreStateFromCloud({ ORDERS:[], trucks:[], assign:{} }); pushStateToCloud(); }
+            else { restoreStateFromCloud({ ORDERS:[], trucks:[], assign:{} }); }
+        }
+        document.getElementById('cloud-status').innerHTML = `🟢 ออนไลน์ (${userEmail})`;
+        document.getElementById('cloud-status').style.color = 'var(--ok)';
+        markReady();
+    }, (error) => {
+        console.error("Firebase Sync Error", error);
+        document.getElementById('cloud-status').innerHTML = '🔴 ออฟไลน์';
+        document.getElementById('cloud-status').style.color = 'var(--bad)';
+        markReady();
+    });
+}
+
+window.initCloud = async function() {
+    const dateInput = document.getElementById('workspace-date');
+    if(dateInput) {
+        flatpickr(dateInput, {
+            locale: "th", altInput: true, altFormat: "d/m/Y", dateFormat: "Y-m-d", defaultDate: todayStr,
+            maxDate: maxDateStr, disableMobile: true,
+            formatDate: function(date, format, locale) {
+                if (format === "d/m/Y") {
+                    const d = ("0" + date.getDate()).slice(-2); const m = ("0" + (date.getMonth() + 1)).slice(-2); const y = date.getFullYear() + 543;
+                    return `${d}/${m}/${y}`;
+                }
+                return flatpickr.formatDate(date, format);
+            },
+            onDayCreate: function(d, s, instance, dayElem) {
+                const dateStr = flatpickr.formatDate(dayElem.dateObj, "Y-m-d");
+                const hasOrders = window.orderDays && window.orderDays.has(dateStr);
+                dayElem.classList.add(hasOrders ? 'day-has-orders' : 'day-no-orders');
+                // ตั้งสีผ่าน inline style โดยตรง กันปัญหาแพ้ชั้น CSS ของ flatpickr.min.css (light theme) ที่โหลดจาก CDN
+                if (!dayElem.classList.contains('prevMonthDay') && !dayElem.classList.contains('nextMonthDay') && !dayElem.classList.contains('flatpickr-disabled')) {
+                    dayElem.style.color = hasOrders ? '#ffffff' : '#8ea0b5';
+                    if (hasOrders) dayElem.style.fontWeight = '700';
+                }
+                if (hasOrders) {
+                    dayElem.innerHTML += '<span class="calendar-dot"></span>';
+                    dayElem.title = 'มีออเดอร์ของวันนี้บันทึกอยู่แล้ว';
+                } else {
+                    dayElem.title = 'ยังไม่มีออเดอร์ของวันนี้';
+                }
+            },
+            onChange: function(selectedDates, dateStr) { if (dateStr) window.switchWorkspace(dateStr); },
+            onReady: function(d, s, instance) { if (instance.currentYearElement) instance.currentYearElement.value = instance.currentYear + 543; },
+            onMonthChange: function(d, s, instance) { if (instance.currentYearElement) instance.currentYearElement.value = instance.currentYear + 543; },
+            onYearChange: function(d, s, instance) { if (instance.currentYearElement) instance.currentYearElement.value = instance.currentYear + 543; },
+            onValueUpdate: function(d, s, instance) { if (instance.currentYearElement) instance.currentYearElement.value = instance.currentYear + 543; }
+        });
+    }
+
+    onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            if (!accessControlLoaded) await loadAccessControl();
+            const email = user.email;
+            if (ACCESS_ADMINS.includes(email)) {
+                window.isViewerMode = false;
+                sessionStorage.setItem('itp_role', 'admin');
+                toast(`ยินดีต้อนรับ คนจัดรถ: ${email}`, true);
+            } else if (ACCESS_VIEWERS.includes(email)) {
+                window.isViewerMode = true;
+                sessionStorage.setItem('itp_role', 'viewer');
+                toast(`เข้าสู่โหมดดูข้อมูล: ${email}`, true);
+            } else {
+                // อีเมลนี้ไม่ได้รับอนุญาต — ปฏิเสธการเข้าใช้งาน
+                const errEl = document.getElementById('login-error');
+                if (errEl) { errEl.textContent = `บัญชี ${email} ยังไม่ได้รับอนุญาตให้เข้าใช้งาน กรุณาติดต่อผู้ดูแลระบบให้เพิ่มสิทธิ์ก่อน`; errEl.style.display = 'block'; }
+                await signOut(auth);
+                return;
+            }
+            document.getElementById('site-login').classList.add('hidden');
+            applyRoleUI();
+            const hdrEl0 = document.getElementById('hdr-date');
+            if (hdrEl0) hdrEl0.textContent = 'ส่งวันที่ ' + thaiDateFullLabel(currentDateStr);
+            fetchOrderDays();
+            subscribeToBoard(user.email, currentDateStr);
+            subscribeToBacklog();
+            subscribeAccessControl();
+        } else {
+            if (window._unsubCloud) { window._unsubCloud(); window._unsubCloud = null; }
+            if (window._unsubBacklog) { window._unsubBacklog(); window._unsubBacklog = null; }
+            if (window._unsubAccess) { window._unsubAccess(); window._unsubAccess = null; }
+            document.getElementById('site-login').classList.remove('hidden');
+            document.getElementById('cloud-status').innerHTML = '⚪ รอล็อกอิน...';
+            ORDERS = []; trucks = []; assign = {}; BACKLOG_ORDERS = []; render();
+        }
+    });
+};
+
+window.switchWorkspace = function(newDateStr) {
+    currentDateStr = newDateStr;
+    
+    const fpInstance = document.getElementById('workspace-date')._flatpickr;
+    const parts = currentDateStr.split('-');
+    const thYear = parseInt(parts[0]) + 543;
+    if(fpInstance && fpInstance.input.value.indexOf(thYear) === -1) {
+       fpInstance.setDate(currentDateStr, false);
+    }
+    
+    // แสดงวันที่ส่งสินค้าของบอร์ดที่เปิดอยู่เสมอ (ไม่ใช่แค่ตอนเพิ่งนำเข้าไฟล์) กันข้อความหายเวลาสลับวันที่/รีเฟรชหน้า
+    const hdrEl = document.getElementById('hdr-date');
+    if (hdrEl) hdrEl.textContent = 'ส่งวันที่ ' + thaiDateFullLabel(currentDateStr);
+    
+    if (currentDateStr < todayStr) {
+        document.getElementById('undo-redo-seg').style.display = 'none';
+        window.isViewerMode = true;
+    } else if (currentDateStr > todayStr) {
+        document.getElementById('undo-redo-seg').style.display = 'flex';
+        const uEmail = auth.currentUser ? auth.currentUser.email : 'Unknown';
+        window.isViewerMode = !ACCESS_ADMINS.includes(uEmail);
+    } else {
+        document.getElementById('undo-redo-seg').style.display = 'flex';
+        const uEmail = auth.currentUser ? auth.currentUser.email : 'Unknown';
+        window.isViewerMode = !ACCESS_ADMINS.includes(uEmail);
+    }
+    
+    applyRoleUI();
+    if(auth.currentUser) subscribeToBoard(auth.currentUser.email, currentDateStr);
+};
+
+window.pushStateToCloud = async function() {
+    if (window.isViewerMode || !auth.currentUser) return;
+    const pushDateStr = currentDateStr; // จับวันที่ ณ ตอนเริ่ม push ไว้ก่อน เผื่อผู้ใช้สลับวันที่ระหว่างรอ setDoc
+    syncingDates.add(pushDateStr);
+    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'board_state', pushDateStr);
+    const payload = JSON.stringify({ ORDERS, trucks, assign, SPLITS, nextGrp, tid, DRIVERS, nextDrvId });
+    try { await setDoc(docRef, { payload }); fetchOrderDays(); } catch(err) { console.error("Cloud push failed:", err); }
+    setTimeout(() => { syncingDates.delete(pushDateStr); }, 500); 
+}
+
+// บันทึกบอร์ดปัจจุบันขึ้น cloud แบบ "บังคับ" ไม่เช็คโหมดดูอย่างเดียว — ใช้เฉพาะตอนนำเข้าไฟล์ออเดอร์ของวันที่ผ่านมาแล้ว
+// (ต้องบันทึกข้อมูลที่นำเข้าให้ได้ แม้วันนั้นจะแก้ไข/ลากจัดต่อไม่ได้แล้วก็ตาม)
+async function forcePushCurrentBoard() {
+    if (!auth.currentUser) return;
+    const pushDateStr = currentDateStr;
+    syncingDates.add(pushDateStr);
+    try {
+        const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'board_state', pushDateStr);
+        const payload = JSON.stringify({ ORDERS, trucks, assign, SPLITS, nextGrp, tid, DRIVERS, nextDrvId });
+        await setDoc(docRef, { payload }); fetchOrderDays();
+    } catch(err) { console.error("Force push failed:", err); }
+    setTimeout(() => { syncingDates.delete(pushDateStr); }, 500);
+}
+
+function restoreStateFromCloud(c) {
+    if(!c || !c.ORDERS) {
+        ORDERS = []; trucks = []; assign = {}; SPLITS = {};
+    } else {
+        ORDERS = c.ORDERS || []; trucks = c.trucks || []; assign = c.assign || {};
+        SPLITS = c.SPLITS || {}; nextGrp = c.nextGrp || 1; tid = c.tid || 1;
+        if(c.DRIVERS) { DRIVERS = c.DRIVERS; nextDrvId = c.nextDrvId || 100; }
+    }
+
+    historyStack = [JSON.parse(JSON.stringify({ ORDERS, trucks, assign, SPLITS, nextGrp, tid, DRIVERS, nextDrvId }))];
+    historyIndex = 0;
+
+    initZones(); render(); updateUndoRedoUI();
+}
+
+function saveState() {
+  if (historyIndex < historyStack.length - 1) historyStack = historyStack.slice(0, historyIndex + 1);
+  historyStack.push(JSON.parse(JSON.stringify({ ORDERS, trucks, assign, SPLITS, nextGrp, tid, DRIVERS, nextDrvId })));
+  historyIndex++;
+  if (historyStack.length > 50) { historyStack.shift(); historyIndex--; }
+  updateUndoRedoUI();
+  pushStateToCloud();
+}
+
+window.doUndo = function() {
+  if (historyIndex <= 0) return;
+  historyIndex--; restoreState(historyStack[historyIndex]);
+}
+
+window.doRedo = function() {
+  if (historyIndex >= historyStack.length - 1) return;
+  historyIndex++; restoreState(historyStack[historyIndex]);
+}
+
+function restoreState(s) {
+  let oldScrolls = saveScrollPositions();
+  const c = JSON.parse(JSON.stringify(s));
+  ORDERS = c.ORDERS; trucks = c.trucks; assign = c.assign; SPLITS = c.SPLITS;
+  nextGrp = c.nextGrp; tid = c.tid; DRIVERS = c.DRIVERS; nextDrvId = c.nextDrvId;
+  initZones(); render(oldScrolls); updateUndoRedoUI();
+  pushStateToCloud();
+}
+
+function updateUndoRedoUI() {
+  const uBtn = document.getElementById('btn-undo'); const rBtn = document.getElementById('btn-redo');
+  if(uBtn) uBtn.disabled = historyIndex <= 0; if(rBtn) rBtn.disabled = historyIndex >= historyStack.length - 1;
+}
+
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey && e.key.toLowerCase() === 'z') { e.preventDefault(); if (e.shiftKey) window.doRedo(); else window.doUndo(); }
+  if (e.ctrlKey && e.key.toLowerCase() === 'y') { e.preventDefault(); window.doRedo(); }
+});
+
+function parseOrderSheet(wsRows){
+  const orders=[]; let cur=null;
+  for(let i=4; i<wsRows.length; i++){
+    const r = wsRows[i]||[];
+    const g = j => jsNorm(r[j]);
+    
+    const rawSeq = g(0); const so = g(1); const cust = g(2); const addr = g(3);
+    const prod = g(4); const size = r[5]; const qty = r[6]; const wt = r[7];
+
+    if(rawSeq && so){
+      cur = {
+        rawSeq: rawSeq, so: so, cust: cust, addr: addr, items: [], packMap: {}, extra: '',
+        memo: { qa: g(8), store: g(9), time: g(10), deliver: g(11), docret: g(12), sales: g(13), truck: g(14), equip: g(15), safety: g(16) },
+        status: (g(18)+' '+g(19)+' '+g(20))
+      };
+      orders.push(cur);
+    }
+    
+    if(!cur) continue;
+    
+    if(prod){
+      const w = Number(wt) || 0;
+      cur.items.push({prod, wt:w});
+      
+      let sizeStr = String(size || '').replace(/,/g, '').replace(/[^0-9.]/g, '');
+      const sv = parseFloat(sizeStr);
+      const qv = parseInt(qty) || 1;
+      
+      if(!isNaN(sv) && sv >= 5 && sv <= 2000){
+        cur.packMap[sv] = (cur.packMap[sv] || 0) + qv;
+      } else {
+        for(const m of prod.matchAll(/([\d,]+)\s*กก\.?\s*\/\s*(?:ถัง|ถุง|แกลลอน|กระสอบ|IBC)/gi)){
+          const v = parseFloat(m[1].replace(/,/g, ''));
+          if(!isNaN(v) && v >= 5 && v <= 2000) cur.packMap[v] = (cur.packMap[v] || 0) + qv;
+        }
+      }
+    } else if(addr && !so && !prod) cur.extra += ' ' + addr;
+  }
+
+  return orders.map(o => {
+    const memo = o.memo;
+    const [truck, helper] = parseTruck(memo.truck);
+    const itemsTxt = o.items.map(i=>i.prod).join(' ');
+    const loadBlob = itemsTxt + ' ' + memo.store + ' ' + memo.equip;
+    const loads = [];
+    if(/IBC\s*โหลด|โหลดลง|โหลดฝา|\+โหลด|โหลด/.test(loadBlob)) loads.push('โหลด');
+    if(/ตั้งวาง/.test(loadBlob)) loads.push('ตั้งวาง');
+    if(/แพคน้ำ|แพ็คน้ำ/.test(loadBlob)) loads.push('แพคน้ำ');
+    
+    let power = null;
+    if(/3\s*เฟส|16\s*A/i.test(memo.equip)) power = '3เฟส';
+    else if(/220\s*V|ไฟบ้าน/i.test(memo.equip)) power = '220V';
+    
+    const db = (memo.truck + memo.sales + memo.safety).replace(/ /g,'');
+    const wor8 = /วอ\.?8/.test(db); const lic4 = /ใบขับขี่(ประเภท|ชนิด)ที่?4|ประเภทที่4|ชนิดที่4|ท\.4/.test(db);
+    
+    const pblob = (memo.truck + ' ' + memo.sales + ' ' + memo.deliver).replace(/ /g,'');
+    const prenotify = /แจ้ง.{0,10}(ทะเบียน|รายชื่อ).{0,15}ล่วงหน้า|ล่วงหน้า1วัน|ล่วงหน้าไม่เกิน/.test(pblob);
+    
+    const tblob = (memo.time + ' ' + memo.store); const tb = tblob.replace(/ /g,'');
+    let win = null;
+    if(/ขอส่งบ่าย|ส่งบ่าย|บ่าย/.test(tb)) win = 'บ่าย';
+    else if(/ส่งช่วงเช้า|ส่งเช้า|ช่วงเช้า|ก่อนเที่ยง|ก่อน11|ไม่เกิน11|ไม่เกิน10|8\.30/.test(tb)) win = 'เช้า';
+    
+    let hard = null;
+    const hm = tblob.match(/(ถึงลูกค้า|รับสินค้า|ส่งก่อน|ก่อน|ไม่เกิน)\s*(\d{1,2})[.:](\d{2})/);
+    if(hm) hard = `${hm[1]} ${hm[2]}.${hm[3]}น.`;
+    
+    let date = null;
+    const allm = Object.values(memo).join(' ');
+    let dm = allm.match(/ส่งไม่เกิน.{0,5}(\d{1,2})\/(\d{1,2})/);
+    if(dm) date = `≤${dm[1]}/${dm[2]}`;
+    else { dm = allm.match(/ส่ง.{0,6}วันที่\s*(\d{1,2})\/(\d{1,2})/); if(dm) date = `${dm[1]}/${dm[2]}`; }
+
+    // ตรวจ "รับเอง" แบบกว้าง — ค้นทุกคอลัมน์ที่เกี่ยวข้อง (ไม่ใช่แค่คอลัมน์ประเภทรถ) เพราะข้อมูลจริงมักโน้ตไว้ในช่องอื่น เช่น รายละเอียดส่ง/หมายเหตุ/ที่อยู่
+    const pickupBlob = (allm + ' ' + o.status + ' ' + o.addr + ' ' + o.extra).replace(/\s/g,'');
+    const isSelfPickup = /รับ[ก-๙]{0,10}เอง|มาเอง|ลูกค้ามารับ|ลูกค้าเข้ามารับ|มารับที่คลัง|มารับที่บริษัท/.test(pickupBlob);
+    const finalTruck = isSelfPickup ? ['pickup'] : truck;
+
+    const atxt = o.addr + ' ' + o.extra;
+    const prov = provOf(atxt) || '?';
+    const zone = PROV_ZONE[prov] || 'อื่นๆ';
+    const cancel = o.status.includes('ยกเลิก');
+    const wtTotal = Math.round(o.items.reduce((s,i) => s + i.wt, 0));
+    const excelSeqNum = parseInt(String(o.rawSeq).replace(/\D/g, ''), 10) || 99999;
+
+    return {
+      rawSeq: o.rawSeq, excelSeq: excelSeqNum, so: o.so, cust: o.cust, 
+      prov, zone, wt: wtTotal, addr: atxt.trim(),
+      items: o.items.filter(i=>i.wt>0).map(i=>`${i.prod} · ${Math.round(i.wt)}กก.`),
+      packs0: Object.entries(o.packMap).map(([s,q]) => ({s:Number(s), q})).sort((a,b)=>a.s-b.s),
+      truck: finalTruck, helper, loads, power, wor8, lic4, prenotify, win, hard, date, cancel,
+      d_time: memo.time, d_store: memo.store, d_deliver: memo.deliver,
+      d_doc: (memo.docret + ' ' + memo.sales).trim(), d_equip: memo.equip, d_safety: memo.safety, d_qa: memo.qa, matched: true
+    };
+  });
+}
+
+function mergeOrders(recs){
+  const bySo={}; ORDERS.forEach(o=>{if(o.so && !o._grp) bySo[o.so]=o;});
+  let added=0, updated=0, cancelled=[], skippedSplit=0;
+  let maxSeq = ORDERS.length ? Math.max(...ORDERS.map(o=>o.seq)) : 0;
+  
+  recs.forEach(r=>{
+    const splitParent = Object.values(SPLITS).find(g=>g.orig.so === r.so);
+    if(splitParent) { skippedSplit++; return; }
+    const ex = bySo[r.so];
+    
+    if(r.cancel){
+      if(ex){
+        if(assign[ex.seq]){
+          const t = trucks.find(x=>x.id===assign[ex.seq].t);
+          cancelled.push(`${ex.cust.slice(0,20)} (อยู่ใน ${t?t.name:'รถ'})`);
+        } else cancelled.push(ex.cust.slice(0,20));
+        removeAssign(ex.seq); ORDERS = ORDERS.filter(x=>x.seq!==ex.seq);
+      }
+      return;
+    }
+    
+    if(ex){
+      const wasAssigned = !!assign[ex.seq];
+      const changed = ex.wt!==r.wt || JSON.stringify(ex.items)!==JSON.stringify(r.items) || JSON.stringify(ex.truck)!==JSON.stringify(r.truck);
+      Object.assign(ex, r, {seq: ex.seq, _new: ex._new});
+      processNLP(ex);
+      if(changed) updated++;
+      if(changed && wasAssigned) ex._upd = true;
+    } else {
+      const n = {...r, seq: ++maxSeq, _new: true};
+      processNLP(n); ORDERS.push(n); added++;
+    }
+  });
+  return {added, updated, cancelled, skippedSplit};
+}
+
+function processNLP(o){
+  let customText = (o.customFields || []).map(c => c.k + ' ' + c.v).join(' ');
+  let fullText = [o.cust, o.prov, (o.items||[]).join(' '), o.d_time, o.d_store, o.d_deliver, o.d_doc, o.d_equip, o.d_safety, o.d_qa, customText].join(' ').toLowerCase();
+  o.smartTags = [];
+  
+  if(fullText.match(/ห้ามรถใหญ่|3เพลาขึ้นไป|ทางไม่ค่อยดี|เป็นหลุม|ห้าม 10 ล้อ/)){
+    o.smartTags.push({text:'⚠ ห้ามรถใหญ่', type:'bad'});
+    if(o.truck===null) o.truck=[4,6]; else o.truck = o.truck.filter(t=>t!==10 && t!=='hire');
+  }
+  if(fullText.match(/สายโหลด|สายยาง/)) o.smartTags.push({text:'🧰 สายโหลด', type:'equip'});
+  if(fullText.match(/ปั๊ม|ปั้ม/)) o.smartTags.push({text:'🧰 เครื่องปั๊ม', type:'equip'});
+  if(fullText.match(/รถเข็น|แฮนด์พาเลท|จะเข้/)) o.smartTags.push({text:'🛒 รถเข็น', type:'equip'});
+  if(fullText.match(/โฟล์คลิฟท์/)) o.smartTags.push({text:'มีโฟล์คลิฟท์', type:'info'});
+  if(fullText.match(/ชั่งน้ำหนัก|ชั่ง นน/)) o.smartTags.push({text:'⚖️ ต้องชั่ง นน.', type:'alert'});
+  if(fullText.match(/คัดถัง|ถังสะอาด|ล้างถัง/)) o.smartTags.push({text:'✨ คัดถังสะอาด', type:'alert'});
+  if(fullText.match(/380 ?v|3 ?เฟส/)) o.smartTags.push({text:'⚡ ไฟ 380V', type:'power'});
+  if(fullText.match(/220 ?v|ไฟบ้าน|ปลั๊ก 2 ขา/)) o.smartTags.push({text:'⚡ ไฟ 220V', type:'power'});
+  if(fullText.match(/food grade|ฟู้ดเกรด/i)) o.smartTags.push({text:'🍽️ Food Grade', type:'info'});
+
+  o.ibc = 0;
+  let hasLargeTank = false;
+  o.packs = o.packs0 && o.packs0.length > 0 ? o.packs0 : [];
+
+  o.packs.forEach(p => {
+    if(p.s >= 500) { o.ibc += (p.q > 0 ? p.q : 1); hasLargeTank = true; }
+  });
+
+  const isIBCMentioned = (o.loads && o.loads.includes('โหลด')) || /ibc/i.test(fullText);
+  if(isIBCMentioned && !hasLargeTank && o.ibc === 0) o.ibc = Math.max(1, Math.round(o.wt / 1000));
+}
+
+function doSplit(o,w1){
+  let oldScrolls = saveScrollPositions();
+  removeAssign(o.seq);
+  const base = o.plabel ? o.plabel.replace('#','') : (o.rawSeq ? String(o.rawSeq) : String(o.seq));
+  const maxSeq = Math.max(...ORDERS.map(x=>x.seq)); const grp = nextGrp++;
+  const mk = (part, w) => {
+    const c = JSON.parse(JSON.stringify(o));
+    c.seq = maxSeq+part; c.plabel = `#${base}.${part}`; c.wt = w;
+    c.ibc = o.ibc > 0 ? Math.max(1, Math.round(w/1000)) : 0;
+    c._grp = grp; c._new = false; c.smartTags = o.smartTags; c.packs = o.packs;
+    c.items = [`(แบ่งจาก #${base} — ส่วนนี้ ${w.toLocaleString()}กก.)`, ...(o.items||[])];
+    return c;
+  };
+  const p1 = mk(1, w1), p2 = mk(2, o.wt-w1);
+  SPLITS[grp] = {orig:o, parts:[p1.seq, p2.seq]};
+  ORDERS = ORDERS.filter(x => x.seq!==o.seq); ORDERS.push(p1, p2);
+  render(oldScrolls); toast(`✂ แบ่ง ${lbl(p1)} (${w1.toLocaleString()}กก.) + ${lbl(p2)} (${(o.wt-w1).toLocaleString()}กก.) — ลากลงคนละคันได้เลย`, true);
+  saveState();
+}
+
+window.splitPrompt = function(seq){
+  if(window.isViewerMode) return;
+  const o = byId(seq); if(!o) return;
+  if(o.wt < 2){ toast('น้ำหนักน้อยเกินกว่าจะแบ่ง'); return; }
+  if(window.Swal){
+    const half = Math.round(o.wt/2);
+    Swal.fire({
+      title:'✂ แบ่งออเดอร์',
+      html:`<div style="text-align:left;line-height:1.7"><b style="color:#e6edf5">${lbl(o)} ${o.cust}</b><br>
+        น้ำหนักรวม <b style="color:#5b9dd9">${o.wt.toLocaleString()} กก.</b>${o.ibc?` · <b style="color:#79c0ff">${o.ibc} IBC</b>`:''}<br><br>
+        ใส่น้ำหนัก <b>ส่วนที่ 1</b> (กก.): <input id="sw-w1" type="number" class="swal2-input" style="margin:8px 0;width:80%" value="${half}" min="1" max="${o.wt-1}">
+        <div id="sw-preview" style="font-size:13px;color:#8ea0b5">→ ส่วนที่ 1: <b style="color:#7fd0a0">${half.toLocaleString()}</b> กก. · ส่วนที่ 2: <b style="color:#e0b95a">${(o.wt-half).toLocaleString()}</b> กก.</div></div>`,
+      showCancelButton:true, confirmButtonText:'✂ แบ่งเลย', cancelButtonText:'ยกเลิก',
+      didOpen:()=>{
+        const inp = document.getElementById('sw-w1'); inp.focus(); inp.select();
+        inp.addEventListener('input',()=>{
+          const w = Number(inp.value)||0;
+          document.getElementById('sw-preview').innerHTML = (w>0 && w<o.wt) ? `→ ส่วนที่ 1: <b style="color:#7fd0a0">${w.toLocaleString()}</b> กก. · ส่วนที่ 2: <b style="color:#e0b95a">${(o.wt-w).toLocaleString()}</b> กก.` :`<span style="color:#e05a52">⚠ ต้องมากกว่า 0 และน้อยกว่า ${o.wt.toLocaleString()}</span>`;
+        });
+      },
+      preConfirm:()=>{
+        const w = Number(document.getElementById('sw-w1').value);
+        if(!w || w<=0 || w>=o.wt){ Swal.showValidationMessage(`น้ำหนักต้องมากกว่า 0 และน้อยกว่า ${o.wt.toLocaleString()}`); return false; }
+        return w;
+      }
+    }).then(res=>{ if(res.isConfirmed) doSplit(o, res.value); });
+  }
+};
+
+window.mergeSplit = function(grp){
+  if(window.isViewerMode) return;
+  const g = SPLITS[grp]; if(!g) return;
+  if(g.parts.some(s=>assign[s])){ toast('⚠ ต้องลากทั้งสองส่วนออกจากรถก่อนจึงรวมกลับได้'); return; }
+  let oldScrolls = saveScrollPositions();
+  ORDERS = ORDERS.filter(x=>!g.parts.includes(x.seq)); ORDERS.push(g.orig); delete SPLITS[grp];
+  render(oldScrolls); toast('⟲ รวมออเดอร์กลับเรียบร้อย', true); saveState();
+};
+
+function getTimeVal(o){
+  let tStr = (o.hard || o.win || o.d_time || '').toLowerCase();
+  let m = tStr.match(/([01]?[0-9]|2[0-3])[.:]([0-5][0-9])/);
+  if(m) return parseInt(m[1]) + (parseInt(m[2])/60);
+  if(tStr.includes('เช้า')) return 8; if(tStr.includes('เที่ยง')) return 12; if(tStr.includes('บ่าย')) return 13; return 99;
+}
+function getTimeCat(o){
+  let v = getTimeVal(o); let tStr = (o.hard || o.win || o.d_time || '').toLowerCase();
+  if(v < 12) return 'morning'; if(v === 12 || tStr.includes('ไม่เกิน 12') || tStr.includes('ก่อนเที่ยง')) return 'before_noon';
+  if(v > 12 && v < 16) return 'afternoon'; if(v >= 16 && v < 99) return 'evening'; return 'any';
+}
+
+function badgeHtml(o){
+  let b=[]; const only4 = o.truck && o.truck.length===1 && o.truck[0]===4;
+  b.push(`<span class="b b-truck${only4?' only4':''}">🚚${truckTxt(o)}</span>`);
+  if(o.helper) b.push('<span class="b b-help">👷เด็ก</span>');
+  (o.loads||[]).forEach(l=>b.push(`<span class="b b-load">⚡${l}</span>`));
+  if(o.power) b.push(`<span class="b b-power">🔌${o.power}</span>`);
+  if(o.wor8) b.push('<span class="b b-doc">📋วอ.8</span>');
+  if(o.lic4) b.push('<span class="b b-doc">📋ท.4</span>');
+  if(o.prenotify) b.push('<span class="b b-doc">📞ล่วงหน้า</span>');
+  if(o.date) b.push(`<span class="b b-date">📅${o.date}</span>`);
+  (o.smartTags||[]).forEach(tg => b.push(`<span class="st st-${tg.type}">${tg.text}</span>`));
+  return b.join('');
+}
+
+function detailHtml(o){
+  const r=[]; const items=(o.items||[]).map(x=>`<div class="prod">• ${x}</div>`).join('');
+  if(items) r.push(`<div class="dl"><span class="k">สินค้า</span><span class="v">${items}</span></div>`);
+  if(o.addr) r.push(`<div class="dl"><span class="k">ที่อยู่</span><span class="v">${o.addr}</span></div>`);
+  if(o.d_time) r.push(`<div class="dl"><span class="k">เวลา/ติดต่อ</span><span class="v">${o.d_time}</span></div>`);
+  if(o.d_store) r.push(`<div class="dl"><span class="k">คลัง</span><span class="v">${o.d_store}</span></div>`);
+  if(o.d_deliver) r.push(`<div class="dl"><span class="k">การส่ง</span><span class="v">${o.d_deliver}</span></div>`);
+  if(o.d_doc) r.push(`<div class="dl"><span class="k">เอกสาร</span><span class="v">${o.d_doc}</span></div>`);
+  if(o.d_equip) r.push(`<div class="dl"><span class="k">อุปกรณ์</span><span class="v">${o.d_equip}</span></div>`);
+  if(o.d_safety) r.push(`<div class="dl"><span class="k">เซฟตี้</span><span class="v">${o.d_safety}</span></div>`);
+  if(o.d_qa) r.push(`<div class="dl"><span class="k">QA</span><span class="v">${o.d_qa}</span></div>`);
+  if(o.customFields) o.customFields.forEach(cf => { if(cf.k && cf.v) r.push(`<div class="dl"><span class="k" style="color:var(--accent)">${cf.k}</span><span class="v">${cf.v}</span></div>`); });
+  return `<div class="detail">${r.join('')}</div>`;
+}
+
+function orderCard(o, inTruck, truckType){
+  const invalid = inTruck && !fitsType(o, truckType);
+  const div = document.createElement('div');
+  div.className = `ord ${ZCLS[o.zone]||'z-other'}` + (invalid?' invalid':'') + (o._new?' new':'') + (o._grp?' is-split':'');
+  div.draggable = !window.isViewerMode; div.dataset.seq = o.seq;
+  
+  const item0 = (o.items && o.items.length) ? String(o.items[o._grp?1:0]||o.items[0]).split('·')[0].trim() : '';
+  const umark = (o.matched===false) ? '<span class="b" style="background:#3a2a12;color:#e0a63a">◇ค้าง/ล่วงหน้า</span>' : '';
+  
+  let timeText = o.hard || o.win; let timeColor = o.hard ? '#ff7b72' : '#e3b341'; let timeBg = o.hard ? '#3b1916' : '#271d0b';
+  if(!timeText){
+    let dStr = (o.d_time||''); let m = dStr.match(/([01]?[0-9]|2[0-3])[.:]([0-5][0-9])/);
+    if(m) { timeText = m[0]+'น.'; } else if(dStr.includes('เช้า')) { timeText = 'เช้า'; }
+    else if(dStr.includes('เที่ยง')) { timeText = 'ก่อนเที่ยง'; timeColor='#f09040'; timeBg='#3a2008'; }
+    else if(dStr.includes('บ่าย')) { timeText = 'บ่าย'; timeColor='#56d364'; timeBg='#12271e'; }
+    else if(dStr.includes('เย็น')) { timeText = 'เย็น'; timeColor='#ff7b72'; timeBg='#3b1916'; }
+  }
+  const timeLimit = timeText ? `<span style="color:${timeColor};font-weight:600;background:${timeBg};padding:1px 5px;border-radius:4px;font-size:10.5px;white-space:nowrap;margin-left:4px;">⏰ ${timeText}</span>` : '';
+  
+  const tools=[];
+  if(!window.isViewerMode) {
+      tools.push(`<span class="split-btn admin-only" title="แบ่งออเดอร์ลงหลายคัน" onclick="event.stopPropagation();splitPrompt(${o.seq})">✂ แบ่ง</span>`);
+      if(o._grp && !assign[o.seq] && !inTruck) tools.push(`<span class="merge-btn admin-only" title="รวมกลับเป็นออเดอร์เดียว" onclick="event.stopPropagation();mergeSplit(${o._grp})">⟲ รวม</span>`);
+      tools.push(`<span class="split-btn admin-only" title="ส่งไปเก็บไว้ที่ออเดอร์ค้าง (จัดวันนี้ไม่ได้)" onclick="event.stopPropagation();sendToBacklog(${o.seq})" style="color:#e0b95a">📋 ค้าง</span>`);
+      tools.push(`<span class="split-btn admin-only" title="ส่งออเดอร์นี้ไปวันที่อื่น" onclick="event.stopPropagation();forwardOrderPrompt(${o.seq})" style="color:#8fc2ff">📅 ล่วงหน้า</span>`);
+  }
+  if(inTruck) tools.push(`<span class="exp-btn">${expandedAll?'ย่อ ▴':'รายละเอียด ▾'}</span>`);
+  
+  let packChips = (o.packs||[]).map(p => `<span class="pk${p.s>=500?' pk-ibc':''}">📦 ${p.s>=500?(p.s+' Kg'):(p.s+' Kg')}${p.q?` × ${p.q.toLocaleString()}`:''}</span>`).join(' ');
+  let carryChip = o.ibc > 0 ? `<span class="wt" style="color:#79c0ff;margin-right:6px">🛢 ${o.ibc} IBC</span>` : '';
+
+  div.innerHTML = (invalid ? `<span class="flag">ผิดประเภทรถ</span>` : '') +
+    `<div class="r1"><span class="seq">${lbl(o)}</span><span class="cust">${o.cust}</span></div>` +
+    `<div class="r1" style="margin-top:3px;align-items:center;gap:4px;flex-wrap:wrap">${carryChip}${packChips}<span class="wt" style="margin-left:auto">⚖️ ${o.wt.toLocaleString()} กก.</span></div>`+
+    `<div class="r2"><span>📍 ${o.prov} · ${item0}</span>${timeLimit}</div>`+
+    `<div class="badges">${umark}${badgeHtml(o)}</div>`+
+    `<div class="card-tools">${tools.join('')}</div>`+ (inTruck ? detailHtml(o) : '');
+    
+  if(!window.isViewerMode) {
+      div.addEventListener('dragstart', e => { e.dataTransfer.setData('text/plain', o.seq); e.dataTransfer.effectAllowed='move'; window._dragSeq=o.seq; div.classList.add('dragging'); e.stopPropagation(); });
+      div.addEventListener('dragend', () => { div.classList.remove('dragging'); window._dragSeq=null; clearMarks(); });
+  }
+  
+  if(inTruck){
+    if(expandedAll) div.classList.add('expanded');
+    const tog = e => { if(window.getSelection().toString().length>0) return; e.stopPropagation(); div.classList.toggle('expanded'); const eb = div.querySelector('.exp-btn'); if(eb) eb.textContent = div.classList.contains('expanded') ? 'ย่อ ▴' : 'รายละเอียด ▾'; };
+    const eb = div.querySelector('.exp-btn'); if(eb) eb.addEventListener('click', tog);
+    div.querySelector('.cust').addEventListener('click', tog);
+  }
+  return div;
+}
+
+function renderPickupList() {
+    const pModal = document.getElementById('pickup-list');
+    const pickupOrders = ORDERS.filter(o => o.truck && o.truck.includes('pickup'));
+    document.getElementById('c-pickup').textContent = pickupOrders.length;
+    
+    if(!pickupOrders.length) {
+        pModal.innerHTML = '<div class="empty">ไม่มีออเดอร์ลูกค้ารับเองในวันนี้</div>';
+        return;
+    }
+    
+    pModal.innerHTML = '';
+    pickupOrders.forEach(o => {
+        const item0 = (o.items && o.items.length) ? String(o.items[0]).split('·')[0].trim() : '';
+        const d = document.createElement('div');
+        d.className = 'ord';
+        d.style.borderLeftColor = 'var(--pickup, #d9822b)';
+        d.innerHTML = `
+            <div class="r1"><span class="seq">${lbl(o)}</span><span class="cust">${o.cust}</span></div>
+            <div class="r1" style="margin-top:3px;align-items:center;gap:4px;flex-wrap:wrap"><span class="wt" style="margin-left:auto">⚖️ ${o.wt.toLocaleString()} กก.</span></div>
+            <div class="r2"><span>📍 ${o.prov} · ${item0}</span></div>
+            <div class="badges">${badgeHtml(o)}</div>
+            <div class="card-tools"><span class="exp-btn">รายละเอียด ▾</span></div>
+            ${detailHtml(o)}
+        `;
+        const tog = e => { if(window.getSelection().toString().length>0) return; d.classList.toggle('expanded'); const eb = d.querySelector('.exp-btn'); if(eb) eb.textContent = d.classList.contains('expanded') ? 'ย่อ ▴' : 'รายละเอียด ▾'; };
+        d.querySelector('.exp-btn').addEventListener('click', tog);
+        d.querySelector('.cust').addEventListener('click', tog);
+        pModal.appendChild(d);
+    });
+}
+
+function renderPool(){
+  const pool = document.getElementById('pool'); pool.innerHTML='';
+  let cM=0, cB=0, cA=0, cE=0, cN=0;
+  
+  // Filter out pickup orders from the main board
+  let validOrders = ORDERS.filter(o => !(o.truck && o.truck.includes('pickup')));
+  
+  validOrders.filter(o=>!assign[o.seq]).forEach(o=>{ let c = getTimeCat(o); if(c==='morning') cM++; else if(c==='before_noon') cB++; else if(c==='afternoon') cA++; else if(c==='evening') cE++; else cN++; });
+  document.getElementById('c-morn').textContent = cM; document.getElementById('c-bnoon').textContent = cB; document.getElementById('c-aft').textContent = cA; document.getElementById('c-eve').textContent = cE; document.getElementById('c-any').textContent = cN;
+  
+  let list = validOrders.filter(o=>!assign[o.seq]);
+  list = list.filter(o=>timeFilters[getTimeCat(o)]);
+  if(activeZone!=='all') list = list.filter(o=>o.zone===activeZone);
+  if(searchTerm){
+    const q = searchTerm.toLowerCase(); list = list.filter(o => (o.cust + o.prov + (o.items||[]).join()).toLowerCase().includes(q));
+  }
+  list.sort((a,b) => { if (a.excelSeq !== b.excelSeq) return a.excelSeq - b.excelSeq; return a.seq - b.seq; });
+  
+  if(!list.length) pool.innerHTML='<div class="empty">— ไม่มีออเดอร์ในเงื่อนไขนี้ —</div>';
+  list.forEach(o => pool.appendChild(orderCard(o, false)));
+  document.getElementById('pool-n').textContent = list.length;
+}
+
+function renderBoard(){
+  const board = document.getElementById('board'); board.innerHTML='';
+  Object.keys(TM).forEach(type => {
+    const m = TM[type]; const col = document.createElement('div');
+    col.className = 'col ' + m.cls + (visCols[type] ? '' : ' hidden');
+    const cnt = trucks.filter(t => t.type===type && truckStops(t)).length; const over = type!=='hire' && cnt>FLEET[type];
+    
+    col.innerHTML = `<div class="col-head"><span class="dot"></span><b>${m.label}</b>` +
+      `<span class="cnt" style="${over?'color:var(--bad);font-weight:700':''}">${cnt}${type!=='hire'?'/'+FLEET[type]:''} คัน${over?' ⚠เกินกอง':''}</span>` +
+      `<span class="cap">/เที่ยว ${CAP[type].toLocaleString()} กก.</span></div><div class="col-body" id="body-${type}"></div>`;
+      
+    board.appendChild(col); const body = col.querySelector('.col-body');
+    trucks.filter(t => t.type===type).forEach(t => body.appendChild(truckCard(t)));
+    
+    if(!window.isViewerMode) {
+        const add = document.createElement('div'); add.className='add-truck admin-only'; add.textContent='+ เพิ่มรถ '+m.label;
+        add.onclick = () => { 
+            let oldScrolls = saveScrollPositions();
+            trucks.push({id:tid++, type, name:m.label+' คันที่ '+(trucks.filter(x=>x.type===type).length+1), trips:[[]], driver:null}); 
+            render(oldScrolls); saveState(); 
+        };
+        body.appendChild(add);
+    }
+  });
+}
+
+function driverSelectHtml(t){
+  const d = driverOf(t);
+  let opts = `<option value="">— เลือกคนขับ —</option>`;
+  DRV_TYPES.forEach(cat => {
+      let groupDrivers = DRIVERS.filter(dv => dv.type === cat);
+      if(groupDrivers.length > 0) {
+          opts += `<optgroup label="🚚 ${cat}">`;
+          groupDrivers.forEach(dv=>{
+            const used = trucks.some(x => x.id!==t.id && x.driver===dv.id && truckStops(x));
+            opts += `<option value="${dv.id}" ${t.driver===dv.id?'selected':''}>${dv.name}${dv.plate?' · '+dv.plate:''}${used?' (ใช้แล้ว)':''}</option>`;
+          });
+          opts += `</optgroup>`;
+      }
+  });
+  const needW8 = t.trips.some(tr => tr.some(q => byId(q)?.wor8)); const needL4 = t.trips.some(tr => tr.some(q => byId(q)?.lic4));
+  let badges = '';
+  if(d){
+    if(needW8) badges += d.wor8 ? `<span class="drv-badge drv-ok">วอ.8 ✓</span>` : `<span class="drv-badge drv-miss">⚠ ไม่มี วอ.8</span>`;
+    if(needL4) badges += d.lic4 ? `<span class="drv-badge drv-ok">ท.4 ✓</span>` : `<span class="drv-badge drv-miss">⚠ ไม่มี ท.4</span>`;
+  } else if(needW8 || needL4) badges += `<span class="drv-badge drv-miss">ต้องการ${needW8?' วอ.8':''}${needL4?' ท.4':''}</span>`;
+  
+  return `<div class="drv-row"><span style="font-size:12px">👤</span><select class="drv-select" onchange="setDriver(${t.id},this.value)" ${window.isViewerMode?'disabled':''}>${opts}</select>${badges}</div>`;
+}
+
+window.setDriver = function(tId, val){ 
+    const t = trucks.find(x=>x.id===tId); if(!t) return; 
+    let oldScrolls = saveScrollPositions();
+    t.driver = val ? Number(val) : null; 
+    render(oldScrolls); saveState(); 
+};
+
+function driverMismatch(t){
+  const d = driverOf(t); const needW8 = t.trips.some(tr => tr.some(q => byId(q)?.wor8)); const needL4 = t.trips.some(tr => tr.some(q => byId(q)?.lic4));
+  let n = 0; if(needW8 && (!d || !d.wor8)) n++; if(needL4 && (!d || !d.lic4)) n++; return (d || needW8 || needL4) ? n : 0;
+}
+
+function truckCard(t){
+  const cap = CAP[t.type], daily = truckWeight(t);
+  const anyOver = t.trips.some((_,i) => tripWeight(t,i)>cap || tripIbc(t,i)>IBC_CAP[t.type]);
+  const anyInvalid = t.trips.some(tr => tr.some(q => !fitsType(byId(q), t.type)));
+  const drvMiss = driverMismatch(t) > 0;
+  let timeConflict = false;
+  t.trips.forEach(tr => {
+    let hasM = tr.some(q => byId(q).win==='เช้า');
+    let hasA = tr.some(q => { let h=byId(q).hard; return h && (h.includes('16.00')||h.includes('17.00')); });
+    if(hasM && hasA) timeConflict = true;
+  });
+  
+  const div = document.createElement('div');
+  div.className = 'truck' + ((anyOver||anyInvalid||drvMiss) ? ' slot-warn' : ''); div.dataset.truckid = t.id;
+  
+  div.innerHTML = `<div class="truck-head"><span class="tname" ${window.isViewerMode?'':'contenteditable'} spellcheck="false">${t.name}</span>` +
+    (timeConflict ? `<span title="มีงานเช้าและบ่ายปนกัน อาจวิ่งไม่ทัน" style="font-size:11px;color:var(--bad);margin-right:5px">⏰⚠เวลาขัดแย้ง</span>` : '') +
+    `<span class="truck-daily">${t.trips.length} เที่ยว · รวม ${daily.toLocaleString()} กก.</span>` +
+    `<span class="action-btn" title="คัดลอกสรุปเที่ยวรถ" onclick="copyTruck(${t.id})">📋</span>` +
+    `<span class="action-btn" title="บันทึกภาพงานส่งให้คนขับ" onclick="captureTruckImage(${t.id})">📸</span>` +
+    (window.isViewerMode ? '' : `<span class="action-btn del-truck admin-only" title="ลบรถ" onclick="deleteTruck(${t.id})">✕</span>`) + `</div>` + driverSelectHtml(t);
+    
+  t.trips.forEach((tr, i) => {
+    const w = tripWeight(t, i), pct = Math.min(100, w/cap*100), over = w>cap;
+    const ib = tripIbc(t, i), maxIb = IBC_CAP[t.type], ibOver = ib>maxIb;
+    
+    const lane = document.createElement('div'); lane.className = 'trip' + ((over || ibOver) ? ' over' : '');
+    lane.innerHTML = `<div class="trip-head"><span class="tlabel">เที่ยว ${i+1}</span>` +
+      `<span class="tw ${over?'over':''}" style="margin-left:auto">${w.toLocaleString()}/${cap.toLocaleString()} กก.</span>` +
+      (ib>0 ? `<span class="tw ${ibOver?'over':''}" style="margin-left:6px;color:#79c0ff">[🛢${ib}/${maxIb} IBC]</span>` : '') +
+      (t.trips.length>1 && !window.isViewerMode ? `<span class="del-trip admin-only" title="ลบเที่ยว" style="margin-left:8px">✕</span>` : '') + `</div>` +
+      `<div class="tbar"><i style="width:${pct}%;background:${over?'var(--bad)':(pct>85?'var(--warn)':'var(--ok)')}"></i></div>` +
+      `<div class="tdrop ${tr.length?'':'is-empty'}" data-truck="${t.id}" data-trip="${i}"></div>`;
+      
+    const drop = lane.querySelector('.tdrop');
+    let sortedTr = [...tr].sort((a,b) => {
+      let oa=byId(a), ob=byId(b); let ta=getTimeVal(oa), tb=getTimeVal(ob);
+      if(ta!==tb) return ta-tb; return (oa.prov||'').localeCompare(ob.prov||'','th');
+    });
+    sortedTr.forEach(q => drop.appendChild(orderCard(byId(q), true, t.type)));
+    
+    if(t.trips.length>1 && !window.isViewerMode) { lane.querySelector('.del-trip').onclick = () => { 
+        let oldScrolls = saveScrollPositions();
+        tr.forEach(q=>delete assign[q]); t.trips.splice(i,1); 
+        render(oldScrolls); saveState(); 
+    }; }
+    div.appendChild(lane);
+  });
+  
+  if(!window.isViewerMode) {
+      const at = document.createElement('div'); at.className = 'add-trip admin-only'; at.textContent = '+ เพิ่มเที่ยว';
+      at.onclick = () => { let oldScrolls = saveScrollPositions(); t.trips.push([]); render(oldScrolls); saveState(); }; div.appendChild(at);
+      div.querySelector('.tname').addEventListener('blur', e => { t.name = e.target.textContent; saveState(); });
+  }
+  return div;
+}
+
+window.deleteTruck = function(tId){ 
+    const t = trucks.find(x=>x.id===tId); if(!t) return; 
+    let oldScrolls = saveScrollPositions();
+    t.trips.forEach(tr=>tr.forEach(q=>delete assign[q])); trucks = trucks.filter(x=>x.id!==t.id); 
+    render(oldScrolls); saveState(); 
+};
+
+window.copyTruck = function(tId){
+  const t = trucks.find(x=>x.id===tId); if(!t) return;
+  const d = driverOf(t);
+  let txt = `🚚 ${t.name}${d ? `\n👤 พขร. ${d.name}${d.plate?' ทะเบียน '+d.plate:''}${d.wor8?' [วอ.8]':''}${d.lic4?' [ท.4]':''}`:''}\n`;
+  t.trips.forEach((tr, i) => {
+    if(tr.length===0) return;
+    txt += `\nเที่ยวที่ ${i+1}: รวม ${tripWeight(t,i).toLocaleString()} กก.\n`;
+    tr.forEach((q, j) => {
+      let o = byId(q); txt += `  ${j+1}. [${o.prov}] ${o.cust} - ${o.wt}กก.\n`;
+      if(o.d_time) txt += `      เวลา: ${o.d_time}\n`;
+    });
+  });
+  try{ navigator.clipboard.writeText(txt).then(()=>{ toast('📋 คัดลอกข้อมูลรถเรียบร้อย', true); }); }
+  catch(err){ let ta = document.createElement("textarea"); ta.value = txt; document.body.appendChild(ta); ta.focus(); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); toast('📋 คัดลอกข้อมูลรถเรียบร้อย', true); }
+};
+
+// ---- บันทึกภาพงานรถ ให้ดาวน์โหลดส่งคนขับได้ (ทำความสะอาดปุ่มควบคุม/dropdown ออกก่อนแคป + ขยายรายละเอียดทุกใบ) ----
+window.captureTruckImage = async function(tId){
+  if (typeof html2canvas === 'undefined') { toast('⚠ ไลบรารีสร้างภาพยังโหลดไม่เสร็จ ลองใหม่อีกครั้ง'); return; }
+  const t = trucks.find(x=>x.id===tId); if(!t) return;
+  const original = document.querySelector(`.truck[data-truckid="${tId}"]`);
+  if (!original) { toast('⚠ ไม่พบการ์ดรถคันนี้ ลองรีเฟรชแล้วลองใหม่'); return; }
+
+  toast('📸 กำลังสร้างภาพ…', true);
+  const d = driverOf(t);
+  const clone = original.cloneNode(true);
+  clone.classList.remove('slot-warn');
+  clone.style.cssText = 'width:420px;background:var(--panel2);border:1px solid var(--line2);border-radius:12px;overflow:hidden';
+
+  // เอาปุ่มควบคุม/ไอคอนที่กดได้ทั้งหมดออก (ไม่มีความหมายในภาพนิ่ง)
+  clone.querySelectorAll('.action-btn, .del-trip, .add-trip, .card-tools, .exp-btn').forEach(el => el.remove());
+  // แสดงรายละเอียดออเดอร์ทุกใบแบบเต็ม (ไม่สนใจว่าตอนเปิดหน้าจอย่อ/ขยายอยู่)
+  clone.querySelectorAll('.ord').forEach(el => { el.classList.add('expanded'); el.style.cursor = 'default'; });
+  clone.querySelectorAll('.detail').forEach(el => { el.style.display = 'block'; });
+  // แทน dropdown เลือกคนขับด้วยข้อความล้วน (dropdown ไม่ render ในภาพให้สวย)
+  const drvRow = clone.querySelector('.drv-row');
+  if (drvRow) {
+    drvRow.innerHTML = `<span style="font-size:12px">👤</span><span style="flex:1;font-size:12.5px;font-weight:600">${d ? d.name + (d.plate ? ' · ' + d.plate : '') : 'ยังไม่ระบุคนขับ'}</span>` +
+      (d && t.trips.some(tr=>tr.some(q=>byId(q)?.wor8)) ? `<span class="drv-badge ${d.wor8?'drv-ok':'drv-miss'}">${d.wor8?'วอ.8 ✓':'⚠ ไม่มี วอ.8'}</span>` : '') +
+      (d && t.trips.some(tr=>tr.some(q=>byId(q)?.lic4)) ? `<span class="drv-badge ${d.lic4?'drv-ok':'drv-miss'}">${d.lic4?'ท.4 ✓':'⚠ ไม่มี ท.4'}</span>` : '');
+  }
+  clone.querySelector('.tname')?.removeAttribute('contenteditable');
+
+  // หัวเรื่อง + วันที่ ต่อท้ายก่อนตัวการ์ด (ให้รู้ว่าเป็นงานวันไหน สร้างเมื่อไหร่)
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'display:inline-block;padding:16px;background:#0f1720;font-family:"IBM Plex Sans Thai",sans-serif';
+  const head = document.createElement('div');
+  head.style.cssText = 'color:#8ea0b5;font-size:12px;margin-bottom:10px;display:flex;justify-content:space-between;width:420px';
+  head.innerHTML = `<b style="color:#e6edf5;font-size:14px">ITP Bangpoo · ใบงานส่งของ</b><span>ส่งวันที่ ${thaiDateFullLabel(currentDateStr)}</span>`;
+  wrap.appendChild(head);
+  wrap.appendChild(clone);
+
+  wrap.style.position = 'fixed'; wrap.style.left = '-9999px'; wrap.style.top = '0';
+  document.body.appendChild(wrap);
+
+  try {
+    const canvas = await html2canvas(wrap, { backgroundColor: '#0f1720', scale: 2, useCORS: true });
+    const link = document.createElement('a');
+    const safeName = t.name.replace(/[\\/:*?"<>|]/g, '_');
+    const safeDriver = d ? '_' + d.name.replace(/[\\/:*?"<>|\s]/g, '') : '';
+    link.download = `${currentDateStr}_${safeName}${safeDriver}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+    toast('📸 บันทึกภาพสำเร็จ พร้อมส่งให้คนขับ', true);
+  } catch(err) {
+    console.error('Capture failed', err);
+    toast('⚠ สร้างภาพไม่สำเร็จ: ' + err.message);
+  } finally {
+    document.body.removeChild(wrap);
+  }
+};
+
+function removeAssign(seq){
+  const a = assign[seq]; if(!a) return; 
+  const t = trucks.find(x=>x.id===a.t);
+  if(t && t.trips[a.trip]) t.trips[a.trip] = t.trips[a.trip].filter(q=>q!==seq);
+  delete assign[seq];
+}
+
+function clearMarks(){ document.querySelectorAll('.tdrop.hl').forEach(z => { z.classList.remove('hl','bad'); z._c=0; }); document.querySelectorAll('.truck.truck-hl').forEach(z => z.classList.remove('truck-hl')); const pa = document.getElementById('pool-aside'); pa.classList.remove('pool-hl'); pa._c=0; }
+
+function dropToTrip(t, tripIdx, seq){
+  const o = byId(seq); if(!o) return;
+  
+  if(assign[seq] && assign[seq].t === t.id && assign[seq].trip === tripIdx) return;
+  
+  const executeDrop = () => {
+    let oldScrolls = saveScrollPositions();
+    const cur = tripWeight(t, tripIdx), curIbc = tripIbc(t, tripIdx);
+    if(o.ibc>0 && curIbc+o.ibc>IBC_CAP[t.type]) toast(`⚠ เที่ยว ${tripIdx+1} ถัง IBC เกิน (${curIbc+o.ibc} > ${IBC_CAP[t.type]} ใบ)${t.type==='4'?' — รถ 4 ล้อใส่ได้แค่ 2 IBC':''} — แนะนำใช้ ✂ แบ่งออเดอร์`);
+    else if(cur+o.wt>CAP[t.type]) toast(`⚠ เที่ยว ${tripIdx+1} น้ำหนักเกิน (${(cur+o.wt).toLocaleString()} > ${CAP[t.type].toLocaleString()} กก.) — แนะนำใช้ ✂ แบ่งออเดอร์`);
+    
+    removeAssign(seq); t.trips[tripIdx].push(seq); assign[seq] = {t:t.id, trip:tripIdx}; o._new = false; 
+    render(oldScrolls); saveState();
+  };
+
+  if(!fitsType(o, t.type)){
+    if(window.Swal) {
+      Swal.fire({
+        title: '⚠️ ยืนยันการจัดรถต่างประเภท?',
+        html: `<div style="text-align:left; font-size:14px; line-height:1.6; color:#8ea0b5;">
+                  ออเดอร์: <b style="color:#e6edf5;">${lbl(o)} ${o.cust}</b><br>
+                  เงื่อนไขเดิมรับได้เฉพาะรถ: <b style="color:#ff7b72;">${truckTxt(o)}</b><br>
+                  คุณกำลังจะจัดลงรถ: <b style="color:#e0b95a;">${t.type} ล้อ</b><br><br>
+                  ต้องการยืนยันให้รถคันนี้รับงานหรือไม่?
+               </div>`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3d6fbe',
+        cancelButtonColor: '#2b1614',
+        confirmButtonText: '✅ ยืนยันจัดรถ',
+        cancelButtonText: '❌ ยกเลิก',
+        background: '#1c2836',
+        color: '#e6edf5',
+        customClass: { popup: 'swal2-popup', title: 'swal2-title', htmlContainer: 'swal2-html-container', confirmButton: 'swal2-confirm', cancelButton: 'swal2-cancel' }
+      }).then((result) => {
+          if (result.isConfirmed) executeDrop();
+      });
+    } else {
+      if(confirm(`⚠ ${lbl(o)} ${o.cust} รับได้เฉพาะรถ ${truckTxt(o)}\nคุณต้องการยืนยันจัดลงรถ ${t.type} ล้อหรือไม่?`)) executeDrop();
+    }
+    return;
+  }
+  
+  executeDrop();
+}
+
+function wireDrop(){
+  if(window.isViewerMode) return; 
+
+  document.querySelectorAll('.tdrop').forEach(z => {
+    if(z._wired) return; z._wired = true;
+    z._c = 0;
+    z.addEventListener('dragenter', e => {
+      e.preventDefault(); z._c++; const o = byId(window._dragSeq); const t = trucks.find(x=>x.id===Number(z.dataset.truck));
+      if(o && t){ z.classList.add('hl'); z.classList.toggle('bad', !fitsType(o,t.type)); }
+    });
+    z.addEventListener('dragleave', () => { z._c--; if(z._c<=0){ z._c=0; z.classList.remove('hl','bad'); }});
+    z.addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect='move'; });
+    z.addEventListener('drop', e => {
+      e.preventDefault(); e.stopPropagation(); z._c=0; z.classList.remove('hl','bad');
+      const seq = Number(e.dataTransfer.getData('text/plain')); if(!seq) return;
+      const t = trucks.find(x=>x.id===Number(z.dataset.truck)); if(!t) return;
+      dropToTrip(t, Number(z.dataset.trip), seq);
+    });
+  });
+  
+  document.querySelectorAll('.truck').forEach(tc => {
+    if(tc._wired) return; tc._wired = true;
+    tc.addEventListener('dragenter', e => { e.preventDefault(); tc.classList.add('truck-hl'); });
+    tc.addEventListener('dragleave', e => { if(!tc.contains(e.relatedTarget)) tc.classList.remove('truck-hl'); });
+    tc.addEventListener('dragover', e => { e.preventDefault(); });
+    tc.addEventListener('drop', e => {
+      e.preventDefault(); e.stopPropagation(); tc.classList.remove('truck-hl');
+      const seq = Number(e.dataTransfer.getData('text/plain')); if(!seq) return;
+      const t = trucks.find(x=>x.id===Number(tc.dataset.truckid)); if(!t) return;
+      const o = byId(seq); if(!o) return;
+      let idx = t.trips.findIndex((tr,i) => tripWeight(t,i)+o.wt<=CAP[t.type] && tripIbc(t,i)+o.ibc<=IBC_CAP[t.type]);
+      if(idx<0) idx = t.trips.length-1; dropToTrip(t, idx, seq);
+    });
+  });
+  
+  const pa = document.getElementById('pool-aside');
+  if(!pa._wired){
+    pa._wired = true; pa._c=0;
+    ['dragenter'].forEach(ev => pa.addEventListener(ev, e => {
+      e.preventDefault(); pa._c++; if(window._dragSeq && assign[window._dragSeq]) pa.classList.add('pool-hl');
+    }));
+    pa.addEventListener('dragleave', () => { pa._c--; if(pa._c<=0){ pa._c=0; pa.classList.remove('pool-hl'); }});
+    pa.addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect='move'; });
+    pa.addEventListener('drop', e => {
+      e.preventDefault(); pa._c=0; pa.classList.remove('pool-hl');
+      const seq = Number(e.dataTransfer.getData('text/plain'));
+      if(seq && assign[seq]){ 
+          let oldScrolls = saveScrollPositions();
+          removeAssign(seq); render(oldScrolls); saveState(); 
+      }
+    });
+  }
+}
+
+function toast(m, ok){ const el=document.getElementById('toast'); el.textContent=m; el.className='show'+(ok?' ok':''); clearTimeout(el._t); el._t=setTimeout(()=>el.className='', 3600); }
+
+function saveScrollPositions() {
+    let scrolls = { pool: 0, cols: {} };
+    const poolEl = document.getElementById('pool');
+    if(poolEl) scrolls.pool = poolEl.scrollTop;
+    ['4', '6', '10', 'hire'].forEach(type => {
+        const colBody = document.getElementById('body-' + type);
+        if(colBody) scrolls.cols[type] = colBody.scrollTop;
+    });
+    return scrolls;
+}
+
+function restoreScrollPositions(scrolls) {
+    if(!scrolls) return;
+    const poolEl = document.getElementById('pool');
+    if(poolEl && scrolls.pool) poolEl.scrollTop = scrolls.pool;
+    ['4', '6', '10', 'hire'].forEach(type => {
+        const colBody = document.getElementById('body-' + type);
+        if(colBody && scrolls.cols[type]) colBody.scrollTop = scrolls.cols[type];
+    });
+}
+
+function updateStats(){
+  let validOrders = ORDERS.filter(o => !(o.truck && o.truck.includes('pickup')));
+  document.getElementById('s-done').textContent = Object.keys(assign).length; 
+  document.getElementById('s-total').textContent = validOrders.length;
+  
+  const used = trucks.filter(t=>truckStops(t)); document.getElementById('s-trucks').textContent = used.length;
+  let trips=0, warn=0, fills=[]; const usedByType={4:0, 6:0, 10:0, hire:0};
+  
+  used.forEach(t => {
+    usedByType[t.type]++; warn += driverMismatch(t);
+    t.trips.forEach((tr,i) => {
+      if(!tr.length) return; trips++; const w = tripWeight(t,i); fills.push(w/CAP[t.type]*100);
+      if(w>CAP[t.type] || tripIbc(t,i)>IBC_CAP[t.type]) warn++;
+      if(tr.some(q=>!fitsType(byId(q), t.type))) warn++;
+    });
+  });
+  ['4','6','10'].forEach(k => { if(usedByType[k]>FLEET[k]) warn++; });
+  document.getElementById('s-trips').textContent = trips;
+  document.getElementById('s-fill').textContent = (fills.length ? Math.round(fills.reduce((a,b)=>a+b,0)/fills.length) : 0) + '%';
+  document.getElementById('s-warn').textContent = warn;
+  
+  const warnBtn = document.getElementById('btn-show-warn');
+  if(warn > 0) {
+      warnBtn.style.background = 'var(--badbg)';
+      warnBtn.style.border = '1px solid var(--bad)';
+  } else {
+      warnBtn.style.background = 'transparent';
+      warnBtn.style.border = '1px solid transparent';
+  }
+}
+
+window.showWarnings = function() {
+    let warningsList = [];
+    const usedByType={4:0, 6:0, 10:0, hire:0};
+
+    trucks.forEach(t => {
+        if(!truckStops(t)) return;
+        usedByType[t.type]++;
+        
+        let truckHasWarning = false;
+        let truckWarningsHTML = `<div style="text-align:left; margin-bottom:12px; padding:10px; background:var(--panel2); border-left:4px solid var(--bad); border-radius:4px;">`;
+        truckWarningsHTML += `<div style="font-weight:bold; color:var(--ink); margin-bottom:6px;">🚚 ${t.name}</div><ul style="margin:0; padding-left:20px; font-size:13px; color:var(--ink-dim);">`;
+
+        const dMismatch = driverMismatch(t);
+        if(dMismatch > 0) {
+            truckHasWarning = true;
+            const needW8 = t.trips.some(tr => tr.some(q => byId(q)?.wor8));
+            const needL4 = t.trips.some(tr => tr.some(q => byId(q)?.lic4));
+            const d = driverOf(t);
+            if(!d) truckWarningsHTML += `<li><span style="color:var(--bad)">ไม่มีคนขับ</span> (ออเดอร์ต้องการ ${needW8?'วอ.8':''}${needW8&&needL4?' และ ':''}${needL4?'ท.4':''})</li>`;
+            else {
+                if(needW8 && !d.wor8) truckWarningsHTML += `<li>คนขับ <span style="color:var(--bad)">ไม่มี วอ.8</span></li>`;
+                if(needL4 && !d.lic4) truckWarningsHTML += `<li>คนขับ <span style="color:var(--bad)">ไม่มี ท.4</span></li>`;
+            }
+        }
+
+        t.trips.forEach((tr, i) => {
+            if(!tr.length) return;
+            const w = tripWeight(t,i);
+            const ib = tripIbc(t,i);
+            let tripWarns = [];
+            
+            if(w > CAP[t.type]) tripWarns.push(`น้ำหนักเกิน (<span style="color:var(--bad)">${w.toLocaleString()}</span> / ${CAP[t.type].toLocaleString()} กก.)`);
+            if(ib > IBC_CAP[t.type]) tripWarns.push(`IBC เกิน (<span style="color:var(--bad)">${ib}</span> / ${IBC_CAP[t.type]} ใบ)`);
+            
+            let invalidOrders = [];
+            tr.forEach(q => {
+               const o = byId(q);
+               if(!fitsType(o, t.type)) invalidOrders.push(lbl(o));
+            });
+            if(invalidOrders.length > 0) tripWarns.push(`ออเดอร์ผิดประเภทรถ (<span style="color:var(--bad)">${invalidOrders.join(', ')}</span>)`);
+
+            if(tripWarns.length > 0) {
+                truckHasWarning = true;
+                truckWarningsHTML += `<li><b>เที่ยวที่ ${i+1}:</b> ${tripWarns.join(' | ')}</li>`;
+            }
+        });
+
+        truckWarningsHTML += `</ul></div>`;
+        if(truckHasWarning) warningsList.push(truckWarningsHTML);
+    });
+
+    let fleetWarningsHTML = '';
+    ['4','6','10'].forEach(k => { 
+        if(usedByType[k] > FLEET[k]) {
+            fleetWarningsHTML += `<div style="text-align:left; margin-bottom:6px; color:var(--bad); font-size:13.5px;">⚠ ใช้รถ ${TM[k].label} เกินกำหนด (${usedByType[k]} / ${FLEET[k]} คัน)</div>`;
+        }
+    });
+
+    if(warningsList.length === 0 && fleetWarningsHTML === '') {
+        Swal.fire({
+            title: '✅ ไม่มีข้อผิดพลาด',
+            text: 'การจัดรถบนกระดานตอนนี้เป็นไปตามเงื่อนไขทั้งหมดครับ',
+            icon: 'success',
+            background: '#1c2836', color: '#e6edf5', confirmButtonColor: '#3d6fbe',
+            customClass: { popup: 'swal2-popup', title: 'swal2-title', htmlContainer: 'swal2-html-container', confirmButton: 'swal2-confirm' }
+        });
+        return;
+    }
+
+    Swal.fire({
+        title: '⚠️ สรุปข้อผิดพลาดการจัดรถ',
+        html: `<div style="max-height: 60vh; overflow-y: auto; padding-right: 5px;">
+                ${fleetWarningsHTML}
+                ${fleetWarningsHTML ? '<hr style="border-color:var(--line); margin: 10px 0;">' : ''}
+                ${warningsList.join('')}
+               </div>`,
+        icon: 'warning', width: 600, background: '#1c2836', color: '#e6edf5', confirmButtonColor: '#3d6fbe', confirmButtonText: 'รับทราบ',
+        customClass: { popup: 'swal2-popup', title: 'swal2-title', htmlContainer: 'swal2-html-container', confirmButton: 'swal2-confirm' }
+    });
+};
+
+function render(oldScrolls = null){ 
+    renderBoard(); 
+    renderPickupList();
+    renderPool(); 
+    wireDrop(); 
+    updateStats(); 
+    renderDrivers(); 
+    if(oldScrolls) restoreScrollPositions(oldScrolls);
+}
+
+function renderDrivers(){
+  const body = document.getElementById('drv-body'); if(!body) return; body.innerHTML = '';
+  DRIVERS.forEach(d => {
+    const tr = document.createElement('tr'); const usedBy = trucks.find(t=>t.driver===d.id && truckStops(t));
+    let typeOpts = ''; DRV_TYPES.forEach(cat => { typeOpts += `<option value="${cat}" ${d.type===cat?'selected':''}>${cat}</option>`; });
+
+    tr.innerHTML = `
+      <td><input type="text" value="${d.name}" onchange="window.updDrv(${d.id},'name',this.value)">${usedBy?`<div style="font-size:10px;color:var(--accent)">→ ${usedBy.name}</div>`:''}</td>
+      <td><input type="text" value="${d.plate}" placeholder="ทะเบียน" onchange="window.updDrv(${d.id},'plate',this.value)"></td>
+      <td><select onchange="window.updDrv(${d.id},'type',this.value)">${typeOpts}</select></td>
+      <td style="text-align:center"><input type="checkbox" ${d.wor8?'checked':''} onchange="window.updDrv(${d.id},'wor8',this.checked)"></td>
+      <td style="text-align:center"><input type="checkbox" ${d.lic4?'checked':''} onchange="window.updDrv(${d.id},'lic4',this.checked)"></td>
+      <td><span class="drv-del admin-only" title="ลบคนขับ" onclick="window.delDrv(${d.id})">✕</span></td>`;
+    body.appendChild(tr);
+  });
+}
+
+window.updDrv = function(id, field, val){
+  const d = DRIVERS.find(x=>x.id===id); if(!d) return; d[field] = val;
+  let oldScrolls = saveScrollPositions();
+  if(field==='wor8' || field==='lic4') { render(oldScrolls); saveState(); } else { renderBoard(); wireDrop(); updateStats(); saveState(); }
+};
+
+window.delDrv = function(id){
+  const usedBy = trucks.find(t=>t.driver===id && truckStops(t));
+  if(usedBy && !confirm(`คนขับนี้ถูกใช้อยู่ที่ "${usedBy.name}" — ยืนยันลบ?`)) return;
+  let oldScrolls = saveScrollPositions();
+  trucks.forEach(t=>{ if(t.driver===id) t.driver=null; }); DRIVERS = DRIVERS.filter(d=>d.id!==id); 
+  render(oldScrolls); saveState();
+};
+
+document.getElementById('btn-add-driver').onclick = () => { 
+    DRIVERS.push({id:nextDrvId++, name:'', plate:'', type:'4 ล้อ', wor8:false, lic4:false}); 
+    renderDrivers(); saveState(); 
+};
+
+function packTrips(list){
+  const trips=[]; list = list.slice().sort((a,b)=>{ const na=oAllowed(a).length, nb=oAllowed(b).length; return na!==nb ? na-nb : b.wt-a.wt; });
+  for(const o of list){
+    const at = new Set(oAllowed(o)), pump=oPump(o); let best=null, bs=1e9;
+    for(const tp of trips){
+      if(tp.type==='hire' || !at.has(Number(tp.type))) continue;
+      if(pump!==tp.pump) continue; const nl = tp.load+o.wt; const ni = tp.ibc+o.ibc;
+      if(nl>CAP[tp.type] || ni>IBC_CAP[tp.type]) continue;
+      const sl = CAP[tp.type]-nl; if(sl<bs){ bs=sl; best=tp; }
+    }
+    if(best){ best.seq.push(o.seq); best.load+=o.wt; best.ibc+=o.ibc; }
+    else{
+      const cand = [4,6,10].filter(x=>at.has(x) && CAP[x]>=o.wt && IBC_CAP[x]>=o.ibc);
+      if(!cand.length){ trips.push({type:'hire', zone:o.zone, pump, seq:[o.seq], load:o.wt, ibc:o.ibc}); continue; }
+      let pick = cand.find(x=>o.wt>=CAP[x]*0.3); if(pick===undefined) pick = Math.max(...cand);
+      trips.push({type:String(pick), zone:o.zone, pump, seq:[o.seq], load:o.wt, ibc:o.ibc});
+    }
+  }
+  return trips;
+}
+
+function autoPlan(){
+  if(window.isViewerMode) return;
+  
+  let validOrders = ORDERS.filter(o => !(o.truck && o.truck.includes('pickup')));
+  let pool = validOrders.filter(o=>!assign[o.seq]);
+  
+  if(pool.length===0){ toast("✨ ไม่มีออเดอร์ค้างให้จัด (ถ้าต้องการจัดใหม่ทั้งหมด ให้กด ✕ ล้างรถทั้งหมดก่อน)", true); return; }
+  
+  {
+    pool.sort((a,b)=>b.wt-a.wt); const remain=[];
+    for(const o of pool){
+      const at = new Set(oAllowed(o)), pump=oPump(o); let best=null, bs=1e9;
+      for(const t of trucks){
+        if(t.type==='hire' || !at.has(Number(t.type))) continue;
+        t.trips.forEach((tr,i) => {
+          const tpump = tr.some(q=>oPump(byId(q))); if(tr.length && pump!==tpump) return;
+          const w = tripWeight(t,i); const ib = tripIbc(t,i);
+          if(w+o.wt>CAP[t.type] || ib+o.ibc>IBC_CAP[t.type]) return;
+          const sl = CAP[t.type]-(w+o.wt); if(sl<bs){ bs=sl; best={t,i}; }
+        });
+      }
+      if(best){ best.t.trips[best.i].push(o.seq); assign[o.seq]={t:best.t.id, trip:best.i}; o._new=false; } else remain.push(o);
+    }
+    pool = remain;
+  }
+  
+  const byProv = {}; pool.forEach(o => (byProv[o.prov]=byProv[o.prov]||[]).push(o));
+  let cnt = {};
+  function mkTruck(type, zoneLbl, tripSeqs){
+    cnt[type] = (cnt[type]||0)+1; const tl = type==='hire' ? 'เหมา' : (type+' ล้อ');
+    const t = {id:tid++, type, name:`${tl} · ${zoneLbl} #${cnt[type]}`, trips:tripSeqs.map(s=>s.slice()), driver:null};
+    trucks.push(t); tripSeqs.forEach((sq,i) => sq.forEach(q=>{ assign[q]={t:t.id, trip:i}; byId(q)._new=false; }));
+  }
+  for(const prov in byProv){
+    let provTrips = packTrips(byProv[prov]); let isFar = ['ใต้','อีสาน'].includes(byProv[prov][0].zone);
+    const byType = {}; provTrips.forEach(tp => (byType[tp.type]=byType[tp.type]||[]).push(tp));
+    for(const type in byType){
+      const arr = byType[type];
+      if(isFar){ arr.forEach(tp => mkTruck(type, prov, [tp.seq])); }
+      else { for(let i=0; i<arr.length; i+=TRIPS_NEAR){ mkTruck(type, prov, arr.slice(i, i+TRIPS_NEAR).map(c=>c.seq)); } }
+    }
+  }
+  let oldScrolls = saveScrollPositions();
+  render(oldScrolls); saveState();
+  const used = trucks.filter(t=>truckStops(t)); let trips=0, fills=[];
+  used.forEach(t => t.trips.forEach((tr,i) => { if(tr.length){ trips++; fills.push(tripWeight(t,i)/CAP[t.type]*100); }}));
+  const avg = fills.length ? fills.reduce((a,b)=>a+b,0)/fills.length : 0;
+  toast(`✨ จัดรถเสร็จสิ้น: ${used.length} คัน · ${trips} เที่ยว · fill/เที่ยว เฉลี่ย ${avg.toFixed(0)}%`, true);
+}
+
+function applyRoleUI() {
+  document.body.classList.toggle('is-viewer', window.isViewerMode);
+
+  const btnLogout = document.getElementById('btn-logout');
+  btnLogout.onclick = () => {
+      if(window.Swal) {
+          Swal.fire({
+              title: 'ออกจากระบบ?',
+              text: 'คุณต้องการสลับบัญชีหรือออกจากระบบใช่หรือไม่?',
+              icon: 'warning',
+              showCancelButton: true,
+              confirmButtonText: '🚪 ออกจากระบบ',
+              cancelButtonText: 'ยกเลิก',
+              background: '#1c2836', color: '#e6edf5', confirmButtonColor: '#e05a52',
+              customClass: { popup: 'swal2-popup', title: 'swal2-title', htmlContainer: 'swal2-html-container', confirmButton: 'swal2-confirm', cancelButton: 'swal2-cancel' }
+          }).then((result) => {
+              if (result.isConfirmed) {
+                  signOut(auth).then(() => {
+                      sessionStorage.removeItem('itp_role');
+                  });
+              }
+          });
+      } else {
+          if(confirm('ต้องการออกจากระบบใช่หรือไม่?')) signOut(auth);
+      }
+  };
+  
+  let oldScrolls = saveScrollPositions();
+  render(oldScrolls); 
+}
+
+function initZones(){
+  const zs = ['all', ...new Set(ORDERS.map(o=>o.zone))]; const box = document.getElementById('zones'); box.innerHTML='';
+  zs.forEach(z => {
+    const b = document.createElement('span'); b.className = 'zone-btn' + (z===activeZone?' on':''); b.textContent = ZLBL[z] || z;
+    b.onclick = () => { activeZone=z; document.querySelectorAll('.zone-btn').forEach(x=>x.classList.remove('on')); b.classList.add('on'); renderPool(); };
+    box.appendChild(b);
+  });
+}
+
+document.querySelectorAll('.col-toggle').forEach(el=>{ el.onclick=()=>{ const c=el.dataset.col; visCols[c]=!visCols[c]; el.classList.toggle('on',visCols[c]); renderBoard(); wireDrop(); };});
+document.querySelectorAll('.time-filter').forEach(el=>{ el.onclick=()=>{ const t=el.dataset.time; timeFilters[t]=!timeFilters[t]; el.classList.toggle('on',timeFilters[t]); renderPool(); };});
+
+window.closePopups = function(){ 
+  document.getElementById('driverpop').classList.remove('show'); 
+  document.getElementById('settings').classList.remove('show'); 
+  document.getElementById('pickup-modal').classList.remove('show'); 
+  document.getElementById('backlog-modal').classList.remove('show'); 
+  document.getElementById('access-modal').classList.remove('show'); 
+  document.getElementById('backdrop').classList.remove('show'); 
+};
+document.getElementById('btn-settings').onclick = () => { closePopups(); document.getElementById('settings').classList.add('show'); document.getElementById('backdrop').classList.add('show'); };
+document.getElementById('btn-drivers').onclick = () => { closePopups(); document.getElementById('driverpop').classList.add('show'); document.getElementById('backdrop').classList.add('show'); };
+document.getElementById('btn-pickup').onclick = () => { closePopups(); document.getElementById('pickup-modal').classList.add('show'); document.getElementById('backdrop').classList.add('show'); };
+document.getElementById('btn-backlog').onclick = () => { closePopups(); renderBacklogList(); document.getElementById('backlog-modal').classList.add('show'); document.getElementById('backdrop').classList.add('show'); };
+document.getElementById('btn-access').onclick = () => { closePopups(); renderAccessList(); document.getElementById('access-modal').classList.add('show'); document.getElementById('backdrop').classList.add('show'); };
+document.getElementById('btn-add-admin').onclick = () => addAdminEmail();
+document.getElementById('btn-add-viewer').onclick = () => addViewerEmail();
+document.getElementById('new-admin-email').addEventListener('keydown', e => { if(e.key==='Enter') addAdminEmail(); });
+document.getElementById('new-viewer-email').addEventListener('keydown', e => { if(e.key==='Enter') addViewerEmail(); });
+
+
+[['cap4',4],['cap6',6],['cap10',10],['capHire','hire']].forEach(([id,k])=>document.getElementById(id).addEventListener('input',e=>{ CAP[k]=Number(e.target.value)||0; let oldS=saveScrollPositions(); render(oldS); saveState(); }));
+[['ibc4',4],['ibc6',6],['ibc10',10],['ibcHire','hire']].forEach(([id,k])=>document.getElementById(id).addEventListener('input',e=>{ IBC_CAP[k]=Number(e.target.value)||0; let oldS=saveScrollPositions(); render(oldS); saveState(); }));
+[['fleet4',4],['fleet6',6],['fleet10',10],['fleetHire','hire']].forEach(([id,k])=>document.getElementById(id).addEventListener('input',e=>{ FLEET[k]=Number(e.target.value)||0; let oldS=saveScrollPositions(); render(oldS); saveState(); }));
+document.getElementById('tripsNear').addEventListener('input',e=>{ TRIPS_NEAR=Math.max(1,Number(e.target.value)||1); });
+
+document.getElementById('btn-auto').onclick = autoPlan; 
+document.getElementById('btn-clear').onclick = () => { if(window.isViewerMode)return; assign={}; trucks=[]; tid=1; let oldS=saveScrollPositions(); render(oldS); toast("✕ จัดใหม่ทั้งหมดเรียบร้อย", true); saveState(); };
+
+document.getElementById('btn-clear-all').onclick = () => { 
+  if(window.isViewerMode)return; 
+  if(window.Swal) {
+    Swal.fire({
+      title: '⚠️ ลบออเดอร์ทั้งหมด?',
+      html: 'ต้องการล้างกระดานและลบออเดอร์ทั้งหมดเพื่อเริ่มวันใหม่ใช่หรือไม่?<br><br><span style="color:#e05a52;font-weight:bold">ข้อมูลทั้งหมดบนกระดานนี้จะหายไป (ถ้ายังไม่ได้ Export Excel ควรทำก่อน)</span>',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: '🗑️ ใช่, ลบทิ้งเลย',
+      cancelButtonText: 'ยกเลิก',
+      confirmButtonColor: '#e05a52',
+      background: '#1c2836', color: '#e6edf5',
+      customClass: { popup: 'swal2-popup', title: 'swal2-title', htmlContainer: 'swal2-html-container', confirmButton: 'swal2-confirm', cancelButton: 'swal2-cancel' }
+    }).then((result) => {
+      if (result.isConfirmed) {
+        ORDERS=[]; assign={}; trucks=[]; tid=1; SPLITS={}; nextGrp=1;
+        let oldS=saveScrollPositions(); render(oldS); toast("🗑️ ลบออเดอร์ทั้งหมดเรียบร้อยแล้ว เตรียมรับไฟล์ใหม่", true); saveState();
+      }
+    });
+  }
+};
+
+document.getElementById('search').addEventListener('input', e => { searchTerm=e.target.value; renderPool(); });
+document.getElementById('btn-expand').onclick = () => { 
+  expandedAll = !expandedAll; document.getElementById('btn-expand').textContent = expandedAll ? '▴ ย่อรายละเอียด' : '▾ ขยายรายละเอียด';
+  document.querySelectorAll('.truck .ord').forEach(c => { c.classList.toggle('expanded', expandedAll); const eb = c.querySelector('.exp-btn'); if(eb) eb.textContent = expandedAll ? 'ย่อ ▴' : 'รายละเอียด ▾'; });
+};
+
+/* ---------- ดึงวันที่ส่งสินค้าจากไฟล์ออเดอร์ เพื่อสลับปฏิทินให้ตรงอัตโนมัติ ---------- */
+const TH_MONTHS = {'มกราคม':1,'กุมภาพันธ์':2,'มีนาคม':3,'เมษายน':4,'พฤษภาคม':5,'มิถุนายน':6,'กรกฎาคม':7,'สิงหาคม':8,'กันยายน':9,'ตุลาคม':10,'พฤศจิกายน':11,'ธันวาคม':12};
+function parseDeliveryDateFromHeader(hdrLines){
+  for(const line of hdrLines){
+    // เช่น "ส่งสินค้าวันที่  30 กรกฎาคม  2569" (จำนวนช่องว่างไม่แน่นอน)
+    const m = line.match(/วันที่\s*(\d{1,2})\s+([ก-๙]+)\s+(\d{4})/);
+    if(!m) continue;
+    const dd = parseInt(m[1],10), mm = TH_MONTHS[m[2]];
+    let yyyy = parseInt(m[3],10);
+    if(!mm) continue;
+    if(yyyy > 2400) yyyy -= 543; // พ.ศ. -> ค.ศ.
+    if(dd>=1 && dd<=31 && yyyy>=2020 && yyyy<=2035) return `${yyyy}-${String(mm).padStart(2,'0')}-${String(dd).padStart(2,'0')}`;
+  }
+  return null;
+}
+function parseDeliveryDateFromSheetName(sn){
+  // เช่น "คลังบางปู_30072026" -> DDMMYYYY ต่อท้ายชื่อชีท
+  const m = sn.match(/(\d{2})(\d{2})(\d{4})\s*$/);
+  if(!m) return null;
+  const dd = parseInt(m[1],10), mm = parseInt(m[2],10), yyyy = parseInt(m[3],10);
+  if(dd>=1 && dd<=31 && mm>=1 && mm<=12 && yyyy>=2020 && yyyy<=2035) return `${yyyy}-${String(mm).padStart(2,'0')}-${String(dd).padStart(2,'0')}`;
+  return null;
+}
+function extractDeliveryDate(wb, sheetName){
+  try{
+    const ws = wb.Sheets[sheetName];
+    const hdrLines = XLSX.utils.sheet_to_json(ws,{header:1,raw:false,defval:''}).slice(0,4).flat().map(x=>jsNorm(x)).filter(Boolean);
+    const fromHeader = parseDeliveryDateFromHeader(hdrLines);
+    if(fromHeader) return fromHeader;
+  }catch(e){}
+  return parseDeliveryDateFromSheetName(sheetName);
+}
+function thaiDateLabel(ymd){
+  const p = ymd.split('-'); return `${p[2]}/${p[1]}/${parseInt(p[0])+543}`;
+}
+const TH_MONTHS_REV = ['','มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+function thaiDateFullLabel(ymd){
+  const p = ymd.split('-');
+  const mm = parseInt(p[1],10);
+  return `${parseInt(p[2],10)} ${TH_MONTHS_REV[mm]} ${parseInt(p[0],10)+543}`;
+}
+
+window.importOrderWB=function(wb){
+  let sheetName = wb.SheetNames[0];
+  try{
+    const ws0 = wb.Sheets[wb.SheetNames[0]];
+    const hdr = XLSX.utils.sheet_to_json(ws0,{header:1,raw:false,defval:''}).slice(0,4).flat().map(x=>jsNorm(x));
+    const dt = hdr.find(x=>x.includes('วันที่')); if(dt) document.getElementById('hdr-date').textContent = dt.replace('ส่งสินค้า','ส่ง');
+  }catch(e){}
+  const doParse = (sn)=>{
+    const runImport = ()=>{
+      const ws = wb.Sheets[sn]; const rows = XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:null});
+      const recs = parseOrderSheet(rows); if(!recs.length){toast('⚠ ไม่พบออเดอร์ในชีทนี้ — เช็ครูปแบบไฟล์'); return;}
+      let oldScrolls = saveScrollPositions();
+      const res = mergeOrders(recs); initZones(); render(oldScrolls);
+      let msg = `📥 นำเข้า ${sn}: ใหม่ ${res.added} · อัปเดต ${res.updated}`;
+      if(res.cancelled.length) msg += ` · ❌ยกเลิก ${res.cancelled.length} (${res.cancelled.slice(0,3).join(', ')}${res.cancelled.length>3?'…':''})`;
+      if(res.skippedSplit) msg += ` · ข้ามงานที่แบ่งไว้ ${res.skippedSplit}`;
+      if(currentDateStr < todayStr){
+        // วันที่ผ่านมาแล้ว: บันทึกได้ (เพื่อเก็บข้อมูลไฟล์ที่นำเข้า) แต่จากนี้ไปแก้ไข/จัดงานไม่ได้แล้ว ดูได้อย่างเดียว
+        toast(msg + ' · (วันที่นี้ผ่านมาแล้ว บันทึกไว้ดูอย่างเดียว จัดงานต่อไม่ได้)', true);
+        forcePushCurrentBoard();
+      } else {
+        toast(msg, true); saveState();
+      }
+    };
+    const targetDate = extractDeliveryDate(wb, sn);
+    if(targetDate && targetDate !== currentDateStr){
+      // สลับปฏิทินไปตามวันที่ส่งสินค้าที่ระบุในไฟล์เสมอ (ไม่ว่าจะเป็นวันไหนก็ตาม) แล้วรอโหลดข้อมูลเดิมของวันนั้นจาก cloud ให้เสร็จก่อน ค่อยนำเข้าทับ (กันข้อมูลเดิมของวันนั้นหาย)
+      window.switchWorkspace(targetDate);
+      toast(`📅 สลับปฏิทินไปวันที่ ${thaiDateLabel(targetDate)} ตามไฟล์ออเดอร์ — กำลังโหลด…`, true);
+      if(window._boardReady) window._boardReady.then(runImport); else runImport();
+    } else {
+      runImport();
+    }
+  };
+  if(wb.SheetNames.length>1 && window.Swal){
+    Swal.fire({title:'เลือกชีทวันที่ส่ง', input:'select', inputOptions:Object.fromEntries(wb.SheetNames.map(s=>[s,s])), inputValue:sheetName, showCancelButton:true, confirmButtonText:'นำเข้า', cancelButtonText:'ยกเลิก', background: '#1c2836', color: '#e6edf5'}).then(res=>{ if(res.isConfirmed) doParse(res.value); });
+  } else doParse(sheetName);
+};
+
+document.getElementById('btn-addorder').onclick = () => { if(typeof XLSX === 'undefined'){ toast('⚠ ไลบรารีอ่าน Excel ยังโหลดไม่เสร็จ'); return; } document.getElementById('file-order').click(); };
+
+document.getElementById('btn-manual-order').onclick = () => {
+  if(window.isViewerMode) return;
+  if(window.Swal){
+    Swal.fire({
+      title: '➕ เพิ่มงาน',
+      width: '650px',
+      html: `<div style="text-align:left; font-size:13.5px; display:flex; flex-direction:column; gap:12px; margin-top:10px; max-height:65vh; overflow-y:auto; padding-right:10px;">
+               
+               <div style="display:flex; gap:10px;">
+                 <div style="flex:1"><b style="color:var(--ink-dim)">ชื่อลูกค้า <span style="color:var(--bad)">*</span></b><input id="mo-cust" class="swal2-input" placeholder="พิมพ์ชื่อลูกค้า..." style="margin:4px 0 0 0; width:100%;"></div>
+                 <div style="flex:1"><b style="color:var(--ink-dim)">สถานที่ส่ง (จังหวัด) <span style="color:var(--bad)">*</span></b><input id="mo-prov" class="swal2-input" placeholder="เช่น ชลบุรี, กทม." style="margin:4px 0 0 0; width:100%;"></div>
+               </div>
+               
+               <div><b style="color:var(--ink-dim)">สถานที่ส่ง (รายละเอียดที่อยู่)</b><input id="mo-addr" class="swal2-input" placeholder="รายละเอียดที่อยู่ / จุดสังเกต..." style="margin:4px 0 0 0; width:100%;"></div>
+               
+               <div><b style="color:var(--ink-dim)">ชื่อสินค้า</b><input id="mo-prod" class="swal2-input" placeholder="เช่น สารเคมี A" style="margin:4px 0 0 0; width:100%;"></div>
+               
+               <div style="display:flex; gap:10px;">
+                 <div style="flex:1"><b style="color:var(--ink-dim)">ขนาดบรรจุ</b><input id="mo-size" class="swal2-input" placeholder="เช่น 200kg, IBC" style="margin:4px 0 0 0; width:100%;"></div>
+                 <div style="flex:1"><b style="color:var(--ink-dim)">จำนวน ถุง/ถัง</b><input id="mo-qty" type="number" class="swal2-input" placeholder="0" style="margin:4px 0 0 0; width:100%;"></div>
+                 <div style="flex:1"><b style="color:var(--ink-dim)">น้ำหนักรวม (กก.) <span style="color:var(--bad)">*</span></b><input id="mo-wt" type="number" class="swal2-input" placeholder="0" style="margin:4px 0 0 0; width:100%;"></div>
+               </div>
+               
+               <div style="display:flex; gap:10px;">
+                 <div style="flex:1"><b style="color:var(--ink-dim)">อุปกรณ์โหลด</b><input id="mo-equip" class="swal2-input" placeholder="เช่น ปั๊ม, สายโหลด..." style="margin:4px 0 0 0; width:100%;"></div>
+                 <div style="flex:1">
+                   <b style="color:var(--ink-dim)">ประเภทรถที่เข้าได้</b>
+                   <select id="mo-truck" class="swal2-input" style="margin:4px 0 0 0; width:100%; padding:0 8px;">
+                      <option value="any">🚚 ทุกชนิด (4, 6, 10 ล้อ)</option>
+                      <option value="pickup">🏢 ลูกค้ารับเอง</option>
+                      <option value="4">🛻 4 ล้อเท่านั้น</option>
+                      <option value="6">🚛 6 ล้อเท่านั้น</option>
+                      <option value="10">🚛 10 ล้อเท่านั้น</option>
+                      <option value="4,6">🚚 ห้าม 10 ล้อ (เข้าได้แค่ 4 และ 6)</option>
+                   </select>
+                 </div>
+               </div>
+
+               <hr style="border:0; border-top:1px dashed var(--line2); margin: 8px 0;">
+               <div style="display:flex; justify-content:space-between; align-items:center;">
+                 <b style="color:var(--ink-dim)">หัวข้อเพิ่มเติม (ถ้ามี)</b>
+                 <button type="button" id="btn-add-dyn" class="btn btn-sm" style="background:var(--panel2); color:var(--accent);">+ เพิ่มหัวข้อเอง</button>
+               </div>
+               <div id="dynamic-fields-container" style="display:flex; flex-direction:column; gap:8px;"></div>
+               
+             </div>`,
+      showCancelButton: true,
+      confirmButtonText: 'บันทึกงาน',
+      cancelButtonText: 'ยกเลิก',
+      background: '#1c2836', color: '#e6edf5', confirmButtonColor: '#3b9c6e',
+      customClass: { popup: 'swal2-popup', title: 'swal2-title', htmlContainer: 'swal2-html-container', confirmButton: 'swal2-confirm' },
+      didOpen: () => {
+        const container = document.getElementById('dynamic-fields-container');
+        const btnAdd = document.getElementById('btn-add-dyn');
+        btnAdd.onclick = () => {
+          const row = document.createElement('div');
+          row.className = 'dyn-row';
+          row.style.cssText = 'display:flex; gap:10px; align-items:center;';
+          row.innerHTML = `
+            <input type="text" class="swal2-input dyn-key" placeholder="ชื่อหัวข้อ (เช่น เวลาส่ง)" style="margin:0; flex:1;">
+            <input type="text" class="swal2-input dyn-val" placeholder="รายละเอียด..." style="margin:0; flex:2;">
+            <span class="action-btn" style="color:var(--bad); cursor:pointer; padding:4px;" onclick="this.parentElement.remove()">✕</span>
+          `;
+          container.appendChild(row);
+        };
+      },
+      preConfirm: () => {
+        const cust = document.getElementById('mo-cust').value.trim();
+        const addr = document.getElementById('mo-addr').value.trim();
+        const provInput = document.getElementById('mo-prov').value.trim();
+        const wt = Number(document.getElementById('mo-wt').value);
+        const prod = document.getElementById('mo-prod').value.trim();
+        const sizeStr = document.getElementById('mo-size').value.trim();
+        const qty = Number(document.getElementById('mo-qty').value) || 0;
+        const equip = document.getElementById('mo-equip').value.trim();
+        const truckRaw = document.getElementById('mo-truck').value;
+        
+        const customFields = [];
+        document.querySelectorAll('.dyn-row').forEach(row => {
+           const k = row.querySelector('.dyn-key').value.trim();
+           const v = row.querySelector('.dyn-val').value.trim();
+           if (k && v) customFields.push({k, v});
+        });
+
+        if(!cust) { Swal.showValidationMessage('กรุณากรอกชื่อลูกค้า'); return false; }
+        if(!provInput) { Swal.showValidationMessage('กรุณากรอกจังหวัด (สถานที่ส่ง)'); return false; }
+        if(!wt || wt <= 0) { Swal.showValidationMessage('กรุณาใส่น้ำหนักให้ถูกต้อง (มากกว่า 0)'); return false; }
+        return { cust, addr, provInput, wt, prod, sizeStr, qty, equip, truckRaw, customFields };
+      }
+    }).then(res => {
+      if(res.isConfirmed) {
+        const d = res.value;
+        const maxSeq = ORDERS.length ? Math.max(...ORDERS.map(o=>o.seq)) : 0;
+        
+        let truckTypes = [4,6,10];
+        if(d.truckRaw === '4') truckTypes = [4];
+        else if(d.truckRaw === '6') truckTypes = [6];
+        else if(d.truckRaw === '10') truckTypes = [10];
+        else if(d.truckRaw === '4,6') truckTypes = [4,6];
+        else if(d.truckRaw === 'pickup') truckTypes = ['pickup'];
+
+        const p = provOf(d.provInput) || d.provInput;
+        const z = PROV_ZONE[p] || 'อื่นๆ';
+        
+        let itemsList = [];
+        let packMap = {};
+        if(d.prod) {
+            let prodLabel = d.prod;
+            if(d.sizeStr || d.qty > 0) prodLabel += ` (${d.sizeStr || '-'} x ${d.qty || 1})`;
+            prodLabel += ` · ${Math.round(d.wt)}กก.`;
+            itemsList.push(prodLabel);
+            
+            let sv = parseFloat(String(d.sizeStr).replace(/,/g, '').replace(/[^0-9.]/g, ''));
+            if(!isNaN(sv) && sv >= 5 && sv <= 2000) {
+                packMap[sv] = d.qty || 1;
+            } else if (/ibc/i.test(d.sizeStr)) {
+                packMap[1000] = d.qty || 1;
+            }
+        }
+
+        let newOrder = {
+          seq: maxSeq + 1, rawSeq: 'M' + (maxSeq + 1), excelSeq: 999999, so: 'MANUAL',
+          cust: d.cust, prov: p, zone: z, wt: d.wt, addr: d.addr, 
+          items: itemsList, 
+          packs0: Object.entries(packMap).map(([s,q]) => ({s:Number(s), q})).sort((a,b)=>a.s-b.s),
+          packs: [],
+          truck: truckTypes.length === 3 ? null : truckTypes,
+          helper: false, loads: [], power: null, wor8: false, lic4: false, prenotify: false,
+          win: null, hard: null, date: null, cancel: false,
+          d_time: '', d_store: '', d_deliver: '', 
+          d_doc: '', d_equip: d.equip, d_safety: '', d_qa: '',
+          customFields: d.customFields,
+          matched: true, _new: true, smartTags: [], ibc: 0
+        };
+
+        d.customFields.forEach(cf => {
+           if(/เวลา/.test(cf.k)) newOrder.d_time = cf.v;
+           if(/เอกสาร|บิล/.test(cf.k)) newOrder.d_doc = cf.v;
+        });
+
+        processNLP(newOrder);
+
+        ORDERS.push(newOrder);
+        let oldScrolls = saveScrollPositions();
+        initZones();
+        render(oldScrolls);
+        saveState();
+        toast('➕ เพิ่มออเดอร์เรียบร้อย พร้อมลากจัดรถได้เลย!', true);
+      }
+    });
+  }
+};
+
+document.getElementById('file-order').addEventListener('change', e => {
+  const f = e.target.files[0]; if(!f) return;
+  const reader = new FileReader();
+  reader.onload = ev => { try{ const wb = XLSX.read(ev.target.result, {type:'array'}); window.importOrderWB(wb); } catch(err){ toast('⚠ อ่านไฟล์ไม่ได้: '+err.message); } };
+  reader.readAsArrayBuffer(f); e.target.value = '';
+});
+
+// Initial boot
+initZones(); render(); initCloud(); 
+</script>
+</body>
+</html>
