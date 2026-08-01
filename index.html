@@ -163,8 +163,9 @@ header h1 small{color:var(--ink-mute);font-weight:500;font-size:12px;margin-left
 .trip.over{border-color:var(--bad)}
 .trip-head{display:flex;align-items:center;gap:6px;padding:6px 10px;font-size:11px;background:#111a24}
 .trip-head .tlabel{font-weight:700;color:var(--ink-dim)}
-.trip-head .sort-time-btn{cursor:pointer;color:var(--ink-mute);font-size:10.5px;padding:1px 6px;border-radius:5px;border:1px solid var(--line);white-space:nowrap}
-.trip-head .sort-time-btn:hover{color:var(--accent);border-color:var(--accent)}
+.sort-time-btn{cursor:pointer;color:var(--ink-mute);font-size:10.5px;padding:1px 6px;border-radius:5px;border:1px solid var(--line);white-space:nowrap}
+.sort-time-btn:hover{color:var(--accent);border-color:var(--accent)}
+.sort-time-btn.active{color:var(--accent);border-color:var(--accent);background:rgba(91,157,217,0.12)}
 .trip-head .tw{margin-left:auto;font-family:'IBM Plex Mono';color:var(--ink-mute)}
 .trip-head .tw.over{color:var(--bad);font-weight:700}
 .trip-head .del-trip{cursor:pointer;color:var(--ink-mute)}
@@ -412,7 +413,7 @@ body.is-viewer .drv-select { pointer-events: none; -webkit-appearance: none; app
 <div class="wrap">
   <aside class="pool" id="pool-aside">
     <div class="pool-head">
-      <div class="title"><b>ออเดอร์ที่ยังไม่ได้จัด</b><span class="n" id="pool-n">0</span></div>
+      <div class="title"><b>ออเดอร์ที่ยังไม่ได้จัด</b><span class="sort-time-btn" id="btn-pool-sort" title="สลับการจัดเรียง: ตามไฟล์เดิม / ตามเวลาส่ง" onclick="togglePoolSort()">🔃 เรียงตามเวลา</span><span class="n" id="pool-n">0</span></div>
       <input class="search" id="search" placeholder="ค้นหา ลูกค้า / จังหวัด / สินค้า…">
       <div class="zones" id="zones"></div>
     </div>
@@ -558,6 +559,7 @@ let DRIVERS=[
 let nextDrvId=100;
 
 let assign={}, trucks=[], tid=1, activeZone='all', searchTerm='';
+let poolSortByTime = false;
 let visCols={'4':true, '6':true, '10':true, 'hire':true};
 let timeFilters={morning:true, before_noon:true, afternoon:true, evening:true, any:true};
 let expandedAll=false;
@@ -1404,11 +1406,19 @@ function renderPool(){
   if(searchTerm){
     const q = searchTerm.toLowerCase(); list = list.filter(o => (o.cust + o.prov + (o.items||[]).join()).toLowerCase().includes(q));
   }
-  list.sort((a,b) => { if (a.excelSeq !== b.excelSeq) return a.excelSeq - b.excelSeq; return a.seq - b.seq; });
+  list.sort((a,b) => {
+    if(poolSortByTime){
+      const ta = getTimeVal(a), tb = getTimeVal(b);
+      if(ta !== tb) return ta - tb;
+    }
+    if (a.excelSeq !== b.excelSeq) return a.excelSeq - b.excelSeq; return a.seq - b.seq;
+  });
   
   if(!list.length) pool.innerHTML='<div class="empty">— ไม่มีออเดอร์ในเงื่อนไขนี้ —</div>';
   list.forEach(o => pool.appendChild(orderCard(o, false)));
   document.getElementById('pool-n').textContent = list.length;
+  const sortBtn = document.getElementById('btn-pool-sort');
+  if(sortBtn){ sortBtn.classList.toggle('active', poolSortByTime); sortBtn.textContent = poolSortByTime ? '🔃 เรียงตามเวลา ✓' : '🔃 เรียงตามเวลา'; sortBtn.title = poolSortByTime ? 'กำลังเรียงตามเวลาส่ง — กดเพื่อกลับไปเรียงตามลำดับไฟล์เดิม' : 'กดเพื่อเรียงตามเวลาส่ง'; }
 }
 
 function renderBoard(){
@@ -1623,6 +1633,10 @@ function removeAssign(seq){
 
 function clearMarks(){ document.querySelectorAll('.tdrop.hl').forEach(z => { z.classList.remove('hl','bad'); z._c=0; }); document.querySelectorAll('.truck.truck-hl').forEach(z => z.classList.remove('truck-hl')); const pa = document.getElementById('pool-aside'); pa.classList.remove('pool-hl'); pa._c=0; }
 
+window.togglePoolSort = function(){
+  poolSortByTime = !poolSortByTime;
+  renderPool();
+};
 function insertByTime(tripArr, seq){
   const tv = getTimeVal(byId(seq));
   let idx = tripArr.findIndex(q => getTimeVal(byId(q)) > tv);
