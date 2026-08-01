@@ -413,7 +413,7 @@ body.is-viewer .drv-select { pointer-events: none; -webkit-appearance: none; app
 <div class="wrap">
   <aside class="pool" id="pool-aside">
     <div class="pool-head">
-      <div class="title"><b>ออเดอร์ที่ยังไม่ได้จัด</b><span class="sort-time-btn" id="btn-pool-sort" title="สลับการจัดเรียง: ตามไฟล์เดิม / ตามเวลาส่ง" onclick="togglePoolSort()">🔃 เรียงตามเวลา</span><span class="n" id="pool-n">0</span></div>
+      <div class="title"><b>ออเดอร์ที่ยังไม่ได้จัด</b><span class="n" id="pool-n">0</span><span class="sort-time-btn" id="btn-pool-sort" title="สลับการจัดเรียง: ตามไฟล์เดิม / ตามเวลาส่ง" onclick="togglePoolSort()">🔃 เรียงตามเวลา</span></div>
       <input class="search" id="search" placeholder="ค้นหา ลูกค้า / จังหวัด / สินค้า…">
       <div class="zones" id="zones"></div>
     </div>
@@ -1272,6 +1272,17 @@ function getTimeVal(o){
   if(m) return parseInt(m[1]) + (parseInt(m[2])/60);
   if(tStr.includes('เช้า')) return 8; if(tStr.includes('เที่ยง')) return 12; if(tStr.includes('บ่าย')) return 13; return 99;
 }
+// ใช้เรียงลำดับโดยเฉพาะ (ต่างจาก getTimeVal ที่ใช้แยกหมวดรอบส่ง) — ออเดอร์ที่มีตัวเลขเวลาจริง (เช่น 08.30) มาก่อนออเดอร์ที่มีแค่คำทั่วไป (เช้า/บ่าย/เย็น) เสมอ
+function getTimeSortKey(o){
+  let tStr = (o.hard || o.win || o.d_time || '').toLowerCase();
+  let m = tStr.match(/([01]?[0-9]|2[0-3])[.:]([0-5][0-9])/);
+  if(m) return parseInt(m[1]) + (parseInt(m[2])/60); // มีตัวเลขเวลาจริง -> ใช้ค่านั้น (0-24) มาก่อนเสมอ
+  if(tStr.includes('เช้า')) return 100;
+  if(tStr.includes('เที่ยง')) return 101;
+  if(tStr.includes('บ่าย')) return 102;
+  if(tStr.includes('เย็น')) return 103;
+  return 999; // ไม่มีข้อมูลเวลาเลย ไปท้ายสุด
+}
 function getTimeCat(o){
   let v = getTimeVal(o); let tStr = (o.hard || o.win || o.d_time || '').toLowerCase();
   if(v < 12) return 'morning'; if(v === 12 || tStr.includes('ไม่เกิน 12') || tStr.includes('ก่อนเที่ยง')) return 'before_noon';
@@ -1408,7 +1419,7 @@ function renderPool(){
   }
   list.sort((a,b) => {
     if(poolSortByTime){
-      const ta = getTimeVal(a), tb = getTimeVal(b);
+      const ta = getTimeSortKey(a), tb = getTimeSortKey(b);
       if(ta !== tb) return ta - tb;
     }
     if (a.excelSeq !== b.excelSeq) return a.excelSeq - b.excelSeq; return a.seq - b.seq;
@@ -1418,7 +1429,11 @@ function renderPool(){
   list.forEach(o => pool.appendChild(orderCard(o, false)));
   document.getElementById('pool-n').textContent = list.length;
   const sortBtn = document.getElementById('btn-pool-sort');
-  if(sortBtn){ sortBtn.classList.toggle('active', poolSortByTime); sortBtn.textContent = poolSortByTime ? '🔃 เรียงตามเวลา ✓' : '🔃 เรียงตามเวลา'; sortBtn.title = poolSortByTime ? 'กำลังเรียงตามเวลาส่ง — กดเพื่อกลับไปเรียงตามลำดับไฟล์เดิม' : 'กดเพื่อเรียงตามเวลาส่ง'; }
+  if(sortBtn){
+    sortBtn.classList.toggle('active', poolSortByTime);
+    sortBtn.textContent = poolSortByTime ? '🔢 เรียงตามลำดับ' : '🔃 เรียงตามเวลา';
+    sortBtn.title = poolSortByTime ? 'กำลังเรียงตามเวลาส่ง — กดเพื่อกลับไปเรียงตามลำดับไฟล์เดิม' : 'กดเพื่อเรียงตามเวลาส่ง';
+  }
 }
 
 function renderBoard(){
@@ -1638,13 +1653,13 @@ window.togglePoolSort = function(){
   renderPool();
 };
 function insertByTime(tripArr, seq){
-  const tv = getTimeVal(byId(seq));
-  let idx = tripArr.findIndex(q => getTimeVal(byId(q)) > tv);
+  const tv = getTimeSortKey(byId(seq));
+  let idx = tripArr.findIndex(q => getTimeSortKey(byId(q)) > tv);
   if(idx === -1) tripArr.push(seq); else tripArr.splice(idx, 0, seq);
 }
 window.sortTripByTime = function(tId, tripIdx){
   const t = trucks.find(x=>x.id===tId); if(!t) return;
-  t.trips[tripIdx].sort((a,b) => { let oa=byId(a), ob=byId(b); let ta=getTimeVal(oa), tb=getTimeVal(ob); if(ta!==tb) return ta-tb; return (oa.prov||'').localeCompare(ob.prov||'','th'); });
+  t.trips[tripIdx].sort((a,b) => { let oa=byId(a), ob=byId(b); let ta=getTimeSortKey(oa), tb=getTimeSortKey(ob); if(ta!==tb) return ta-tb; return (oa.prov||'').localeCompare(ob.prov||'','th'); });
   let oldScrolls = saveScrollPositions();
   render(oldScrolls); saveState();
   toast('🔃 เรียงลำดับจุดส่งตามเวลาแล้ว', true);
@@ -2049,7 +2064,7 @@ function autoPlan(){
   let cnt = {};
   function mkTruck(type, zoneLbl, tripSeqs){
     cnt[type] = (cnt[type]||0)+1; const tl = type==='hire' ? 'เหมา' : (type+' ล้อ');
-    const timeSort = (a,b) => { let oa=byId(a), ob=byId(b); let ta=getTimeVal(oa), tb=getTimeVal(ob); if(ta!==tb) return ta-tb; return (oa.prov||'').localeCompare(ob.prov||'','th'); };
+    const timeSort = (a,b) => { let oa=byId(a), ob=byId(b); let ta=getTimeSortKey(oa), tb=getTimeSortKey(ob); if(ta!==tb) return ta-tb; return (oa.prov||'').localeCompare(ob.prov||'','th'); };
     const sortedTrips = tripSeqs.map(arr => arr.slice().sort(timeSort));
     const t = {id:tid++, type, name:`${tl} · ${zoneLbl} #${cnt[type]}`, trips:sortedTrips, driver:null};
     trucks.push(t); sortedTrips.forEach((sq,i) => sq.forEach(q=>{ assign[q]={t:t.id, trip:i}; byId(q)._new=false; }));
