@@ -163,10 +163,15 @@ header h1 small{color:var(--ink-mute);font-weight:500;font-size:12px;margin-left
 .trip.over{border-color:var(--bad)}
 .trip-head{display:flex;align-items:center;gap:6px;padding:6px 10px;font-size:11px;background:#111a24}
 .trip-head .tlabel{font-weight:700;color:var(--ink-dim)}
+.trip-head .sort-time-btn{cursor:pointer;color:var(--ink-mute);font-size:10.5px;padding:1px 6px;border-radius:5px;border:1px solid var(--line);white-space:nowrap}
+.trip-head .sort-time-btn:hover{color:var(--accent);border-color:var(--accent)}
 .trip-head .tw{margin-left:auto;font-family:'IBM Plex Mono';color:var(--ink-mute)}
 .trip-head .tw.over{color:var(--bad);font-weight:700}
 .trip-head .del-trip{cursor:pointer;color:var(--ink-mute)}
 .trip-head .del-trip:hover{color:var(--bad)}
+.stop-num{position:absolute;top:-7px;left:-7px;background:var(--accent);color:#fff;font-size:10px;font-weight:700;width:19px;height:19px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px #0008;z-index:3}
+.ord.drop-before{box-shadow:0 -3px 0 0 var(--accent) inset}
+.ord.drop-after{box-shadow:0 3px 0 0 var(--accent) inset}
 .tbar{height:3px;background:#0d141d}
 .tbar>i{display:block;height:100%;background:var(--ok);transition:width .2s,background .2s}
 .tdrop{min-height:34px;padding:8px;display:flex;flex-direction:column;gap:7px;transition:background .12s}
@@ -1496,6 +1501,7 @@ function truckCard(t){
     
     const lane = document.createElement('div'); lane.className = 'trip' + ((over || ibOver) ? ' over' : '');
     lane.innerHTML = `<div class="trip-head"><span class="tlabel">เที่ยว ${i+1}</span>` +
+      (tr.length>1 && !window.isViewerMode ? `<span class="sort-time-btn" title="เรียงลำดับจุดส่งตามเวลาส่งอัตโนมัติ" onclick="sortTripByTime(${t.id},${i})">🔃 เรียงตามเวลา</span>` : '') +
       `<span class="tw ${over?'over':''}" style="margin-left:auto">${w.toLocaleString()}/${cap.toLocaleString()} กก.</span>` +
       (ib>0 ? `<span class="tw ${ibOver?'over':''}" style="margin-left:6px;color:#79c0ff">[🛢${ib}/${maxIb} IBC]</span>` : '') +
       (t.trips.length>1 && !window.isViewerMode ? `<span class="del-trip admin-only" title="ลบเที่ยว" style="margin-left:8px">✕</span>` : '') + `</div>` +
@@ -1503,11 +1509,15 @@ function truckCard(t){
       `<div class="tdrop ${tr.length?'':'is-empty'}" data-truck="${t.id}" data-trip="${i}"></div>`;
       
     const drop = lane.querySelector('.tdrop');
-    let sortedTr = [...tr].sort((a,b) => {
-      let oa=byId(a), ob=byId(b); let ta=getTimeVal(oa), tb=getTimeVal(ob);
-      if(ta!==tb) return ta-tb; return (oa.prov||'').localeCompare(ob.prov||'','th');
+    // ใช้ลำดับตามที่เก็บไว้จริง (tr) — ไม่บังคับเรียงตามเวลาซ้ำทุกครั้งที่ render แล้ว
+    // เพื่อให้ลากจัดลำดับจุดส่งเองได้ (ลำดับจะถูกจดจำไว้) กดปุ่ม "🔃 เรียงตามเวลา" เพื่อเรียงอัตโนมัติได้ทุกเมื่อ
+    tr.forEach((q, stopIdx) => {
+      const card = orderCard(byId(q), true, t.type);
+      const stopNum = document.createElement('span');
+      stopNum.className = 'stop-num'; stopNum.textContent = stopIdx+1;
+      card.prepend(stopNum);
+      drop.appendChild(card);
     });
-    sortedTr.forEach(q => drop.appendChild(orderCard(byId(q), true, t.type)));
     
     if(t.trips.length>1 && !window.isViewerMode) { lane.querySelector('.del-trip').onclick = () => { 
         let oldScrolls = saveScrollPositions();
@@ -1613,6 +1623,59 @@ function removeAssign(seq){
 
 function clearMarks(){ document.querySelectorAll('.tdrop.hl').forEach(z => { z.classList.remove('hl','bad'); z._c=0; }); document.querySelectorAll('.truck.truck-hl').forEach(z => z.classList.remove('truck-hl')); const pa = document.getElementById('pool-aside'); pa.classList.remove('pool-hl'); pa._c=0; }
 
+function insertByTime(tripArr, seq){
+  const tv = getTimeVal(byId(seq));
+  let idx = tripArr.findIndex(q => getTimeVal(byId(q)) > tv);
+  if(idx === -1) tripArr.push(seq); else tripArr.splice(idx, 0, seq);
+}
+window.sortTripByTime = function(tId, tripIdx){
+  const t = trucks.find(x=>x.id===tId); if(!t) return;
+  t.trips[tripIdx].sort((a,b) => { let oa=byId(a), ob=byId(b); let ta=getTimeVal(oa), tb=getTimeVal(ob); if(ta!==tb) return ta-tb; return (oa.prov||'').localeCompare(ob.prov||'','th'); });
+  let oldScrolls = saveScrollPositions();
+  render(oldScrolls); saveState();
+  toast('🔃 เรียงลำดับจุดส่งตามเวลาแล้ว', true);
+};
+function dropToTripAt(t, tripIdx, seq, insertIndex){
+  const o = byId(seq); if(!o) return;
+  const prevAssign = assign[seq];
+  const sameSpot = prevAssign && prevAssign.t===t.id && prevAssign.trip===tripIdx;
+
+  const executeDrop = () => {
+    let oldScrolls = saveScrollPositions();
+    if(!sameSpot){
+      const cur = tripWeight(t, tripIdx), curIbc = tripIbc(t, tripIdx);
+      if(o.ibc>0 && curIbc+o.ibc>IBC_CAP[t.type]) toast(`⚠ เที่ยว ${tripIdx+1} ถัง IBC เกิน (${curIbc+o.ibc} > ${IBC_CAP[t.type]} ใบ)${t.type==='4'?' — รถ 4 ล้อใส่ได้แค่ 2 IBC':''} — แนะนำใช้ ✂ แบ่งออเดอร์`);
+      else if(cur+o.wt>CAP[t.type]) toast(`⚠ เที่ยว ${tripIdx+1} น้ำหนักเกิน (${(cur+o.wt).toLocaleString()} > ${CAP[t.type].toLocaleString()} กก.) — แนะนำใช้ ✂ แบ่งออเดอร์`);
+    }
+    let idx = insertIndex;
+    if(sameSpot){
+      const oldIdx = t.trips[tripIdx].indexOf(seq);
+      if(oldIdx > -1 && oldIdx < idx) idx--;
+    }
+    removeAssign(seq);
+    const arr = t.trips[tripIdx];
+    if(idx == null || idx < 0 || idx > arr.length) arr.push(seq); else arr.splice(idx, 0, seq);
+    assign[seq] = {t:t.id, trip:tripIdx}; o._new = false;
+    render(oldScrolls); saveState();
+  };
+
+  if(!sameSpot && !fitsType(o, t.type)){
+    if(window.Swal){
+      Swal.fire({
+        title: '⚠️ ยืนยันการจัดรถต่างประเภท?',
+        html: `<div style="text-align:left; font-size:14px; line-height:1.6; color:#8ea0b5;">ออเดอร์: <b style="color:#e6edf5;">${lbl(o)} ${o.cust}</b><br>เงื่อนไขเดิมรับได้เฉพาะรถ: <b style="color:#ff7b72;">${truckTxt(o)}</b><br>คุณกำลังจะจัดลงรถ: <b style="color:#e0b95a;">${t.type} ล้อ</b><br><br>ต้องการยืนยันให้รถคันนี้รับงานหรือไม่?</div>`,
+        icon: 'warning', showCancelButton: true, confirmButtonColor: '#3d6fbe', cancelButtonColor: '#2b1614',
+        confirmButtonText: '✅ ยืนยันจัดรถ', cancelButtonText: '❌ ยกเลิก', background: '#1c2836', color: '#e6edf5',
+        customClass: { popup: 'swal2-popup', title: 'swal2-title', htmlContainer: 'swal2-html-container', confirmButton: 'swal2-confirm', cancelButton: 'swal2-cancel' }
+      }).then((result) => { if(result.isConfirmed) executeDrop(); });
+    } else {
+      if(confirm(`⚠ ${lbl(o)} ${o.cust} รับได้เฉพาะรถ ${truckTxt(o)}\nคุณต้องการยืนยันจัดลงรถ ${t.type} ล้อหรือไม่?`)) executeDrop();
+    }
+    return;
+  }
+  executeDrop();
+}
+
 function dropToTrip(t, tripIdx, seq){
   const o = byId(seq); if(!o) return;
   
@@ -1676,6 +1739,33 @@ function wireDrop(){
       const seq = Number(e.dataTransfer.getData('text/plain')); if(!seq) return;
       const t = trucks.find(x=>x.id===Number(z.dataset.truck)); if(!t) return;
       dropToTrip(t, Number(z.dataset.trip), seq);
+    });
+  });
+  
+  // ลากจัดลำดับจุดส่งภายในเที่ยวเอง (วางบนการ์ดใดการ์ดหนึ่ง จะแทรกก่อน/หลังตามตำแหน่งเมาส์)
+  document.querySelectorAll('.tdrop .ord').forEach(card => {
+    if(card._reorderWired) return; card._reorderWired = true;
+    card.addEventListener('dragover', e => {
+      e.preventDefault(); e.stopPropagation(); e.dataTransfer.dropEffect='move';
+      const rect = card.getBoundingClientRect();
+      const isTop = (e.clientY - rect.top) < rect.height/2;
+      card.classList.toggle('drop-before', isTop); card.classList.toggle('drop-after', !isTop);
+    });
+    card.addEventListener('dragleave', () => card.classList.remove('drop-before','drop-after'));
+    card.addEventListener('drop', e => {
+      e.preventDefault(); e.stopPropagation();
+      const isTop = card.classList.contains('drop-before');
+      card.classList.remove('drop-before','drop-after');
+      const seq = Number(e.dataTransfer.getData('text/plain')); if(!seq) return;
+      const zone = card.closest('.tdrop'); if(!zone) return;
+      const t = trucks.find(x=>x.id===Number(zone.dataset.truck)); if(!t) return;
+      const tripIdx = Number(zone.dataset.trip);
+      const targetSeq = Number(card.dataset.seq);
+      if(targetSeq === seq) return;
+      let idx = t.trips[tripIdx].indexOf(targetSeq);
+      if(idx === -1) { dropToTrip(t, tripIdx, seq); return; }
+      if(!isTop) idx++;
+      dropToTripAt(t, tripIdx, seq, idx);
     });
   });
   
@@ -1936,7 +2026,7 @@ function autoPlan(){
           const sl = CAP[t.type]-(w+o.wt); if(sl<bs){ bs=sl; best={t,i}; }
         });
       }
-      if(best){ best.t.trips[best.i].push(o.seq); assign[o.seq]={t:best.t.id, trip:best.i}; o._new=false; } else remain.push(o);
+      if(best){ insertByTime(best.t.trips[best.i], o.seq); assign[o.seq]={t:best.t.id, trip:best.i}; o._new=false; } else remain.push(o);
     }
     pool = remain;
   }
@@ -1945,8 +2035,10 @@ function autoPlan(){
   let cnt = {};
   function mkTruck(type, zoneLbl, tripSeqs){
     cnt[type] = (cnt[type]||0)+1; const tl = type==='hire' ? 'เหมา' : (type+' ล้อ');
-    const t = {id:tid++, type, name:`${tl} · ${zoneLbl} #${cnt[type]}`, trips:tripSeqs.map(s=>s.slice()), driver:null};
-    trucks.push(t); tripSeqs.forEach((sq,i) => sq.forEach(q=>{ assign[q]={t:t.id, trip:i}; byId(q)._new=false; }));
+    const timeSort = (a,b) => { let oa=byId(a), ob=byId(b); let ta=getTimeVal(oa), tb=getTimeVal(ob); if(ta!==tb) return ta-tb; return (oa.prov||'').localeCompare(ob.prov||'','th'); };
+    const sortedTrips = tripSeqs.map(arr => arr.slice().sort(timeSort));
+    const t = {id:tid++, type, name:`${tl} · ${zoneLbl} #${cnt[type]}`, trips:sortedTrips, driver:null};
+    trucks.push(t); sortedTrips.forEach((sq,i) => sq.forEach(q=>{ assign[q]={t:t.id, trip:i}; byId(q)._new=false; }));
   }
   for(const prov in byProv){
     let provTrips = packTrips(byProv[prov]); let isFar = ['ใต้','อีสาน'].includes(byProv[prov][0].zone);
@@ -2159,14 +2251,14 @@ document.getElementById('btn-manual-order').onclick = () => {
                  <div style="flex:1"><b style="color:var(--ink-dim)">สถานที่ส่ง (จังหวัด) <span style="color:var(--bad)">*</span></b><input id="mo-prov" class="swal2-input" placeholder="เช่น ชลบุรี, กทม." style="margin:4px 0 0 0; width:100%;"></div>
                </div>
                
-               <div><b style="color:var(--ink-dim)">สถานที่ส่ง (รายละเอียดที่อยู่)</b><input id="mo-addr" class="swal2-input" placeholder="รายละเอียดที่อยู่ / จุดสังเกต..." style="margin:4px 0 0 0; width:100%;"></div>
+               <div><b style="color:var(--ink-dim)">ที่อยู่</b><input id="mo-addr" class="swal2-input" placeholder="รายละเอียดที่อยู่ / จุดสังเกต..." style="margin:4px 0 0 0; width:100%;"></div>
                
-               <div><b style="color:var(--ink-dim)">ชื่อสินค้า</b><input id="mo-prod" class="swal2-input" placeholder="เช่น สารเคมี A" style="margin:4px 0 0 0; width:100%;"></div>
+               <div><b style="color:var(--ink-dim)">ชื่อสินค้า</b><input id="mo-prod" class="swal2-input" placeholder="เช่น ไฮคลอร์ 10%" style="margin:4px 0 0 0; width:100%;"></div>
                
                <div style="display:flex; gap:10px;">
-                 <div style="flex:1"><b style="color:var(--ink-dim)">ขนาดบรรจุ</b><input id="mo-size" class="swal2-input" placeholder="เช่น 200kg, IBC" style="margin:4px 0 0 0; width:100%;"></div>
+                 <div style="flex:1"><b style="color:var(--ink-dim)">ขนาดบรรจุ</b><input id="mo-size" class="swal2-input" placeholder="เช่น 200 kg" style="margin:4px 0 0 0; width:100%;"></div>
                  <div style="flex:1"><b style="color:var(--ink-dim)">จำนวน ถุง/ถัง</b><input id="mo-qty" type="number" class="swal2-input" placeholder="0" style="margin:4px 0 0 0; width:100%;"></div>
-                 <div style="flex:1"><b style="color:var(--ink-dim)">น้ำหนักรวม (กก.) <span style="color:var(--bad)">*</span></b><input id="mo-wt" type="number" class="swal2-input" placeholder="0" style="margin:4px 0 0 0; width:100%;"></div>
+                 <div style="flex:1"><b style="color:var(--ink-dim)">น้ำหนักรวม (กก.)</b> <span style="color:var(--ink-mute);font-size:10.5px">คำนวณอัตโนมัติ</span><input id="mo-wt" type="number" class="swal2-input" placeholder="0" style="margin:4px 0 0 0; width:100%;"></div>
                </div>
                
                <div style="display:flex; gap:10px;">
@@ -2211,6 +2303,18 @@ document.getElementById('btn-manual-order').onclick = () => {
           `;
           container.appendChild(row);
         };
+        // คำนวณ "น้ำหนักรวม" อัตโนมัติจาก ขนาดบรรจุ x จำนวนถุง/ถัง — ถ้าผู้ใช้พิมพ์น้ำหนักเองจะไม่ทับค่าที่พิมพ์ไว้อีก
+        const sizeEl = document.getElementById('mo-size'), qtyEl = document.getElementById('mo-qty'), wtEl = document.getElementById('mo-wt');
+        let wtTouched = false;
+        const recalcWt = () => {
+          if(wtTouched) return;
+          const sv = parseFloat(String(sizeEl.value).replace(/,/g,'').replace(/[^0-9.]/g,''));
+          const qv = parseFloat(qtyEl.value) || 0;
+          if(!isNaN(sv) && sv > 0 && qv > 0) wtEl.value = Math.round(sv * qv);
+        };
+        sizeEl.addEventListener('input', recalcWt);
+        qtyEl.addEventListener('input', recalcWt);
+        wtEl.addEventListener('input', () => { wtTouched = true; });
       },
       preConfirm: () => {
         const cust = document.getElementById('mo-cust').value.trim();
