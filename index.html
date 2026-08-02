@@ -1361,7 +1361,7 @@ function orderCard(o, inTruck, truckType){
       tools.push(`<span class="split-btn admin-only" title="ส่งไปเก็บไว้ที่ออเดอร์ค้าง (จัดวันนี้ไม่ได้)" onclick="event.stopPropagation();sendToBacklog(${o.seq})" style="color:#e0b95a">📋 ค้าง</span>`);
       tools.push(`<span class="split-btn admin-only" title="ส่งออเดอร์นี้ไปวันที่อื่น" onclick="event.stopPropagation();forwardOrderPrompt(${o.seq})" style="color:#8fc2ff">📅 ล่วงหน้า</span>`);
   }
-  if(inTruck) tools.push(`<span class="exp-btn">${expandedAll?'ย่อ ▴':'รายละเอียด ▾'}</span>`);
+  tools.push(`<span class="exp-btn">${(inTruck && expandedAll)?'ย่อ ▴':'รายละเอียด ▾'}</span>`);
   
   let packChips = (o.packs||[]).map(p => `<span class="pk${p.s>=500?' pk-ibc':''}">📦 ${p.s>=500?(p.s+' Kg'):(p.s+' Kg')}${p.q?` × ${p.q.toLocaleString()}`:''}</span>`).join(' ');
   let carryChip = o.ibc > 0 ? `<span class="wt" style="color:#79c0ff;margin-right:6px">🛢 ${o.ibc} IBC</span>` : '';
@@ -1371,19 +1371,17 @@ function orderCard(o, inTruck, truckType){
     `<div class="r1" style="margin-top:3px;align-items:center;gap:4px;flex-wrap:wrap">${carryChip}${packChips}<span class="wt" style="margin-left:auto">⚖️ ${o.wt.toLocaleString()} กก.</span></div>`+
     `<div class="r2"><span>📍 ${o.prov} · ${item0}</span>${timeLimit}</div>`+
     `<div class="badges">${umark}${badgeHtml(o)}</div>`+
-    `<div class="card-tools">${tools.join('')}</div>`+ (inTruck ? detailHtml(o) : '');
+    `<div class="card-tools">${tools.join('')}</div>`+ detailHtml(o);
     
   if(!window.isViewerMode) {
       div.addEventListener('dragstart', e => { e.dataTransfer.setData('text/plain', o.seq); e.dataTransfer.effectAllowed='move'; window._dragSeq=o.seq; div.classList.add('dragging'); e.stopPropagation(); });
       div.addEventListener('dragend', () => { div.classList.remove('dragging'); window._dragSeq=null; clearMarks(); });
   }
   
-  if(inTruck){
-    if(expandedAll) div.classList.add('expanded');
-    const tog = e => { if(window.getSelection().toString().length>0) return; e.stopPropagation(); div.classList.toggle('expanded'); const eb = div.querySelector('.exp-btn'); if(eb) eb.textContent = div.classList.contains('expanded') ? 'ย่อ ▴' : 'รายละเอียด ▾'; };
-    const eb = div.querySelector('.exp-btn'); if(eb) eb.addEventListener('click', tog);
-    div.querySelector('.cust').addEventListener('click', tog);
-  }
+  if(inTruck && expandedAll) div.classList.add('expanded');
+  const tog = e => { if(window.getSelection().toString().length>0) return; e.stopPropagation(); div.classList.toggle('expanded'); const eb = div.querySelector('.exp-btn'); if(eb) eb.textContent = div.classList.contains('expanded') ? 'ย่อ ▴' : 'รายละเอียด ▾'; };
+  const eb = div.querySelector('.exp-btn'); if(eb) eb.addEventListener('click', tog);
+  div.querySelector('.cust').addEventListener('click', tog);
   return div;
 }
 
