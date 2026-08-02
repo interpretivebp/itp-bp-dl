@@ -155,7 +155,6 @@ header h1 small{color:var(--ink-mute);font-weight:500;font-size:12px;margin-left
 .action-btn:hover{color:var(--accent)}
 .del-truck:hover{color:var(--bad)}
 .drv-row{display:flex;align-items:center;gap:6px;padding:0 11px 7px;width:100%}
-.truck-equip-row{display:flex;flex-wrap:wrap;gap:4px;padding:0 11px 7px}
 .drv-select{background:#0d141d;border:1px solid var(--line);color:var(--ink);border-radius:7px;padding:4px 8px;font-size:12.5px;font-family:inherit;flex:1;cursor:pointer}
 .drv-badge{font-size:10.5px;padding:1px 6px;border-radius:5px;font-weight:700;white-space:nowrap}
 .drv-ok{background:#12271e;color:#56d364}
@@ -332,13 +331,6 @@ body.is-viewer .drv-select { pointer-events: none; -webkit-appearance: none; app
   <div id="backlog-list" style="display:flex; flex-direction:column; gap:8px; max-height: 60vh; overflow-y:auto; padding-right:8px;"></div>
 </div>
 
-<div class="pop centered" id="equip-modal" style="width:min(600px,90vw)">
-  <div class="pop-head"><h4>🧰 เช็คลิสต์อุปกรณ์ที่ต้องเตรียมต่อคัน</h4><span class="pop-close" onclick="closePopups()">✕</span></div>
-  <div style="font-size:11.5px;color:var(--ink-mute);margin-bottom:10px">รวมจากอุปกรณ์/เงื่อนไขที่ตรวจพบอัตโนมัติในแต่ละออเดอร์ — เอาไว้ให้ทีมเตรียมของก่อนออกรถ</div>
-  <div id="equip-list" style="display:flex; flex-direction:column; gap:10px; max-height: 55vh; overflow-y:auto; padding-right:8px;"></div>
-  <button class="btn btn-sm" id="btn-equip-capture" style="margin-top:12px;background:#13233a;color:#79c0ff;border-color:#264a7f;width:100%">📸 บันทึกภาพเช็คลิสต์ทั้งหมด</button>
-</div>
-
 <div class="pop centered" id="settings">
   <div class="pop-head"><h4>⚙ ตั้งค่าเพดาน<b style="color:var(--warn)">ต่อเที่ยว</b> · จำนวนรถ</h4><span class="pop-close" onclick="closePopups()">✕</span></div>
   <div class="grid" style="grid-template-columns:auto 1fr 1fr 1fr">
@@ -412,7 +404,6 @@ body.is-viewer .drv-select { pointer-events: none; -webkit-appearance: none; app
   <div style="width:1px;height:16px;background:var(--line);margin:0 4px"></div>
   <button class="btn btn-sm" id="btn-pickup" style="background:#2a1a18;color:#f09f90;border-color:#5c352b">🏢 รับเอง (<span id="c-pickup">0</span>)</button>
   <button class="btn btn-sm" id="btn-backlog" style="background:#2a2410;color:#f0d090;border-color:#5c4f23">📋 ค้างส่ง (<span id="c-backlog">0</span>)</button>
-  <button class="btn btn-sm" id="btn-equip" style="background:#13233a;color:#79c0ff;border-color:#264a7f">🧰 เช็คลิสต์อุปกรณ์</button>
   <button class="btn btn-sm" id="btn-expand">▾ ขยายรายละเอียด</button>
   <button class="btn btn-sm admin-only" id="btn-clear" style="background:#2b1614;color:#ff7b72;border-color:#8a251c">✕ ล้างรถทั้งหมด</button>
   <button class="btn btn-sm admin-only" id="btn-clear-all" style="background:#3b1916;color:#ff7b72;border-color:#8a251c">🗑️ ลบออเดอร์ทั้งหมด</button>
@@ -589,25 +580,6 @@ const tripIbc = (t,i) => t.trips[i].reduce((s,q) => s + (byId(q)?.ibc||0), 0);
 const truckWeight = t => t.trips.reduce((s,_,i) => s + tripWeight(t,i), 0);
 const truckStops = t => t.trips.reduce((s,tr) => s + tr.length, 0);
 const driverOf = t => DRIVERS.find(d=>d.id===t.driver);
-
-// รวมรายการอุปกรณ์ที่ต้องเตรียมของรถคันหนึ่ง (จาก smartTags ของทุกออเดอร์ในทุกเที่ยว) พร้อมนับจำนวนออเดอร์ที่ต้องใช้แต่ละอย่าง
-function getTruckEquipmentSummary(t){
-  const counts = {}; // key: "type|text" -> {text, type, count}
-  t.trips.forEach(tr => tr.forEach(q => {
-    const o = byId(q); if(!o || !o.smartTags) return;
-    o.smartTags.forEach(tg => {
-      if(!['equip','power','alert'].includes(tg.type)) return; // เฉพาะแท็กที่เกี่ยวกับอุปกรณ์/ไฟ/ข้อควรระวังในการโหลด
-      const key = tg.type + '|' + tg.text;
-      if(!counts[key]) counts[key] = { text: tg.text, type: tg.type, count: 0 };
-      counts[key].count++;
-    });
-  }));
-  return Object.values(counts).sort((a,b) => b.count - a.count);
-}
-// รวมรายการอุปกรณ์ของ "ทุกคัน" ที่มีงานในวันนี้ ไว้เป็นเช็คลิสต์เตรียมของตอนเช้า
-function getAllTrucksEquipmentSummary(){
-  return trucks.filter(t => truckStops(t) > 0).map(t => ({ truck: t, items: getTruckEquipmentSummary(t) })).filter(x => x.items.length > 0);
-}
 
 window.fetchOrderDays = async function() {
     if (!auth.currentUser) return;
@@ -802,60 +774,6 @@ function renderBacklogList() {
         pModal.appendChild(d);
     });
 }
-// ---- เช็คลิสต์อุปกรณ์ที่ต้องเตรียมต่อคัน ----
-function renderEquipList(){
-    const el = document.getElementById('equip-list'); if(!el) return;
-    const data = getAllTrucksEquipmentSummary();
-    if(!data.length){ el.innerHTML = '<div class="empty">ยังไม่มีรถที่ต้องเตรียมอุปกรณ์พิเศษ</div>'; return; }
-    el.innerHTML = data.map(({truck:t, items}) => {
-        const d = driverOf(t);
-        const chips = items.map(e => `<span class="st st-${e.type}">${e.text}${e.count>1?` ×${e.count}`:''}</span>`).join('');
-        return `<div style="background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:9px 12px">
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-              <b style="font-size:13px">🚚 ${t.name}</b>
-              <span style="font-size:11px;color:var(--ink-mute)">${d ? '👤 '+d.name : 'ยังไม่ระบุคนขับ'}</span>
-            </div>
-            <div style="display:flex;flex-wrap:wrap;gap:4px">${chips}</div>
-        </div>`;
-    }).join('');
-}
-window.captureEquipList = async function(){
-    if (typeof html2canvas === 'undefined') { toast('⚠ ไลบรารีสร้างภาพยังโหลดไม่เสร็จ ลองใหม่อีกครั้ง'); return; }
-    const data = getAllTrucksEquipmentSummary();
-    if(!data.length){ toast('⚠ ยังไม่มีข้อมูลอุปกรณ์ให้บันทึกภาพ'); return; }
-    toast('📸 กำลังสร้างภาพ…', true);
-
-    const wrap = document.createElement('div');
-    wrap.style.cssText = 'display:inline-block;width:460px;padding:16px;background:#0f1720;font-family:"IBM Plex Sans Thai",sans-serif';
-    const head = document.createElement('div');
-    head.style.cssText = 'color:#8ea0b5;font-size:12px;margin-bottom:12px';
-    head.innerHTML = `<b style="color:#e6edf5;font-size:14px">ITP Bangpoo · เช็คลิสต์อุปกรณ์ก่อนออกรถ</b><br>ส่งวันที่ ${thaiDateFullLabel(currentDateStr)}`;
-    wrap.appendChild(head);
-    data.forEach(({truck:t, items}) => {
-        const d = driverOf(t);
-        const card = document.createElement('div');
-        card.style.cssText = 'background:var(--panel2);border:1px solid var(--line2);border-radius:9px;padding:10px 12px;margin-bottom:8px';
-        const chips = items.map(e => `<span class="st st-${e.type}">${e.text}${e.count>1?` ×${e.count}`:''}</span>`).join('');
-        card.innerHTML = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><b style="font-size:13px">🚚 ${t.name}</b><span style="font-size:11px;color:var(--ink-mute)">${d ? '👤 '+d.name : 'ยังไม่ระบุคนขับ'}</span></div><div style="display:flex;flex-wrap:wrap;gap:4px">${chips}</div>`;
-        wrap.appendChild(card);
-    });
-
-    wrap.style.position = 'fixed'; wrap.style.left = '-9999px'; wrap.style.top = '0';
-    document.body.appendChild(wrap);
-    try {
-        const canvas = await html2canvas(wrap, { backgroundColor: '#0f1720', scale: 2, useCORS: true });
-        const link = document.createElement('a');
-        link.download = `${currentDateStr}_เช็คลิสต์อุปกรณ์.png`;
-        link.href = canvas.toDataURL('image/png');
-        link.click();
-        toast('📸 บันทึกภาพเช็คลิสต์สำเร็จ', true);
-    } catch(err) {
-        console.error('Capture equip list failed', err);
-        toast('⚠ สร้างภาพไม่สำเร็จ: ' + err.message);
-    } finally {
-        document.body.removeChild(wrap);
-    }
-};
 // ---- ส่งออเดอร์ล่วงหน้าไปวันอื่น ----
 window.forwardOrderPrompt = function(seq) {
     if (window.isViewerMode) return;
@@ -1389,7 +1307,7 @@ function getTimeCat(o){
 function badgeHtml(o){
   let b=[]; const only4 = o.truck && o.truck.length===1 && o.truck[0]===4;
   b.push(`<span class="b b-truck${only4?' only4':''}">🚚${truckTxt(o)}</span>`);
-  if(o.helper) b.push('<span class="b b-help">👷เด็ก</span>');
+  if(o.helper) b.push('<span class="b b-help">👷เด็กรถ</span>');
   (o.loads||[]).forEach(l=>b.push(`<span class="b b-load">⚡${l}</span>`));
   if(o.power) b.push(`<span class="b b-power">🔌${o.power}</span>`);
   if(o.wor8) b.push('<span class="b b-doc">📋วอ.8</span>');
@@ -1613,19 +1531,9 @@ function truckCard(t){
   div.innerHTML = `<div class="truck-head"><span class="tname" ${window.isViewerMode?'':'contenteditable'} spellcheck="false">${t.name}</span>` +
     (timeConflict ? `<span title="มีงานเช้าและบ่ายปนกัน อาจวิ่งไม่ทัน" style="font-size:11px;color:var(--bad);margin-right:5px">⏰⚠เวลาขัดแย้ง</span>` : '') +
     `<span class="truck-daily">${t.trips.length} เที่ยว · รวม ${daily.toLocaleString()} กก.</span>` +
-    `<span class="action-btn" title="คัดลอกสรุปเที่ยวรถ" onclick="copyTruck(${t.id})">📋</span>` +
     `<span class="action-btn" title="บันทึกภาพงานส่งให้คนขับ" onclick="captureTruckImage(${t.id})">📸</span>` +
     (window.isViewerMode ? '' : `<span class="action-btn del-truck admin-only" title="ลบรถ" onclick="deleteTruck(${t.id})">✕</span>`) + `</div>` + driverSelectHtml(t);
 
-  const equipSummary = getTruckEquipmentSummary(t);
-  if(equipSummary.length){
-    const eqRow = document.createElement('div');
-    eqRow.className = 'truck-equip-row';
-    eqRow.innerHTML = equipSummary.map(e => `<span class="st st-${e.type}" title="ต้องใช้ ${e.count} ออเดอร์">${e.text}${e.count>1?` ×${e.count}`:''}</span>`).join('');
-    div.innerHTML += ''; // no-op เผื่อ engine ต้องการ reflow
-    div.querySelector('.truck-head').insertAdjacentElement('afterend', eqRow);
-  }
-    
   t.trips.forEach((tr, i) => {
     const w = tripWeight(t, i), pct = Math.min(100, w/cap*100), over = w>cap;
     const ib = tripIbc(t, i), maxIb = IBC_CAP[t.type], ibOver = ib>maxIb;
@@ -1671,22 +1579,6 @@ window.deleteTruck = function(tId){
     let oldScrolls = saveScrollPositions();
     t.trips.forEach(tr=>tr.forEach(q=>delete assign[q])); trucks = trucks.filter(x=>x.id!==t.id); 
     render(oldScrolls); saveState(); 
-};
-
-window.copyTruck = function(tId){
-  const t = trucks.find(x=>x.id===tId); if(!t) return;
-  const d = driverOf(t);
-  let txt = `🚚 ${t.name}${d ? `\n👤 พขร. ${d.name}${d.plate?' ทะเบียน '+d.plate:''}${d.wor8?' [วอ.8]':''}${d.lic4?' [ท.4]':''}`:''}\n`;
-  t.trips.forEach((tr, i) => {
-    if(tr.length===0) return;
-    txt += `\nเที่ยวที่ ${i+1}: รวม ${tripWeight(t,i).toLocaleString()} กก.\n`;
-    tr.forEach((q, j) => {
-      let o = byId(q); txt += `  ${j+1}. [${o.prov}] ${o.cust} - ${o.wt}กก.\n`;
-      if(o.d_time) txt += `      เวลา: ${o.d_time}\n`;
-    });
-  });
-  try{ navigator.clipboard.writeText(txt).then(()=>{ toast('📋 คัดลอกข้อมูลรถเรียบร้อย', true); }); }
-  catch(err){ let ta = document.createElement("textarea"); ta.value = txt; document.body.appendChild(ta); ta.focus(); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); toast('📋 คัดลอกข้อมูลรถเรียบร้อย', true); }
 };
 
 // ---- บันทึกภาพงานรถ ให้ดาวน์โหลดส่งคนขับได้ (ทำความสะอาดปุ่มควบคุม/dropdown ออกก่อนแคป + ขยายรายละเอียดทุกใบ) ----
@@ -2241,7 +2133,6 @@ window.closePopups = function(){
   document.getElementById('pickup-modal').classList.remove('show'); 
   document.getElementById('backlog-modal').classList.remove('show'); 
   document.getElementById('access-modal').classList.remove('show'); 
-  document.getElementById('equip-modal').classList.remove('show'); 
   document.getElementById('backdrop').classList.remove('show'); 
 };
 document.getElementById('btn-settings').onclick = () => { closePopups(); document.getElementById('settings').classList.add('show'); document.getElementById('backdrop').classList.add('show'); };
@@ -2249,8 +2140,6 @@ document.getElementById('btn-drivers').onclick = () => { closePopups(); document
 document.getElementById('btn-pickup').onclick = () => { closePopups(); document.getElementById('pickup-modal').classList.add('show'); document.getElementById('backdrop').classList.add('show'); };
 document.getElementById('btn-backlog').onclick = () => { closePopups(); renderBacklogList(); document.getElementById('backlog-modal').classList.add('show'); document.getElementById('backdrop').classList.add('show'); };
 document.getElementById('btn-access').onclick = () => { closePopups(); renderAccessList(); document.getElementById('access-modal').classList.add('show'); document.getElementById('backdrop').classList.add('show'); };
-document.getElementById('btn-equip').onclick = () => { closePopups(); renderEquipList(); document.getElementById('equip-modal').classList.add('show'); document.getElementById('backdrop').classList.add('show'); };
-document.getElementById('btn-equip-capture').onclick = () => captureEquipList();
 document.getElementById('btn-add-admin').onclick = () => addAdminEmail();
 document.getElementById('btn-add-viewer').onclick = () => addViewerEmail();
 document.getElementById('new-admin-email').addEventListener('keydown', e => { if(e.key==='Enter') addAdminEmail(); });
