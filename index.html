@@ -559,7 +559,7 @@ let DRIVERS=[
 let nextDrvId=100;
 
 let assign={}, trucks=[], tid=1, activeZone='all', searchTerm='';
-let poolSortByTime = false;
+let poolSortByTime = true; // ค่าเริ่มต้น: เรียงตามเวลาส่งอัตโนมัติเสมอ (กดปุ่มสลับกลับไปเรียงตามไฟล์เดิมได้)
 let visCols={'4':true, '6':true, '10':true, 'hire':true};
 let timeFilters={morning:true, before_noon:true, afternoon:true, evening:true, any:true};
 let expandedAll=false;
