@@ -1135,7 +1135,7 @@ function parseOrderSheet(wsRows){
       items: o.items.filter(i=>i.wt>0).map(i=>`${i.prod} · ${Math.round(i.wt)}กก.`),
       packs0: Object.entries(o.packMap).map(([s,q]) => ({s:Number(s), q})).sort((a,b)=>a.s-b.s),
       truck: finalTruck, helper, loads, power, wor8, lic4, prenotify, win, hard, date, cancel,
-      d_time: memo.time, d_store: memo.store, d_deliver: memo.deliver,
+      d_time: memo.time, d_store: memo.store, d_deliver: memo.deliver, d_truck: memo.truck,
       d_doc: (memo.docret + ' ' + memo.sales).trim(), d_equip: memo.equip, d_safety: memo.safety, d_qa: memo.qa, matched: true
     };
   });
@@ -1307,6 +1307,7 @@ function getTimeCat(o){
 function badgeHtml(o){
   let b=[]; const only4 = o.truck && o.truck.length===1 && o.truck[0]===4;
   b.push(`<span class="b b-truck${only4?' only4':''}">🚚${truckTxt(o)}</span>`);
+  if(o.d_truck && o.d_truck.trim().length > 15) b.push(`<span class="b" style="background:#2a2110;color:#e0b95a;border-color:#5c4723" title="มีรายละเอียด/เงื่อนไขรถเพิ่มเติม กดขยายดูรายละเอียดเต็ม">📌 มีเงื่อนไขรถเพิ่มเติม</span>`);
   if(o.helper) b.push('<span class="b b-help">👷เด็กรถ</span>');
   (o.loads||[]).forEach(l=>b.push(`<span class="b b-load">⚡${l}</span>`));
   if(o.power) b.push(`<span class="b b-power">🔌${o.power}</span>`);
@@ -1322,6 +1323,7 @@ function detailHtml(o){
   const r=[]; const items=(o.items||[]).map(x=>`<div class="prod">• ${x}</div>`).join('');
   if(items) r.push(`<div class="dl"><span class="k">สินค้า</span><span class="v">${items}</span></div>`);
   if(o.addr) r.push(`<div class="dl"><span class="k">ที่อยู่</span><span class="v">${o.addr}</span></div>`);
+  if(o.d_truck) r.push(`<div class="dl" style="background:#2a2110;border-radius:6px;padding:5px 8px;margin:2px 0"><span class="k" style="color:#e0b95a">🚚 ประเภทรถ/พขร.</span><span class="v" style="color:#f0d090;font-weight:600">${o.d_truck}</span></div>`);
   if(o.d_time) r.push(`<div class="dl"><span class="k">เวลา/ติดต่อ</span><span class="v">${o.d_time}</span></div>`);
   if(o.d_store) r.push(`<div class="dl"><span class="k">คลัง</span><span class="v">${o.d_store}</span></div>`);
   if(o.d_deliver) r.push(`<div class="dl"><span class="k">การส่ง</span><span class="v">${o.d_deliver}</span></div>`);
