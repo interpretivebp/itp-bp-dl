@@ -221,12 +221,15 @@ header h1 small{color:var(--ink-mute);font-weight:500;font-size:12px;margin-left
 .card-tools .merge-btn{color:#7fd0a0}
 .pk{background:#20262e;color:#9fb4c8;border:1px solid #33404f;font-size:10px;padding:1px 6px;border-radius:5px;font-weight:600;white-space:nowrap}
 .pk-ibc{background:#1a2733;color:#79c0ff;border-color:#264a7f}
-.ord .detail{display:none;margin-top:8px;padding-top:8px;border-top:1px dashed var(--line2);font-size:12px;line-height:1.55}
+.ord .detail{display:none;margin-top:9px;padding-top:9px;border-top:1px dashed var(--line2);font-size:12.5px;line-height:1.65;color:var(--ink-dim);word-break:break-word;overflow-wrap:break-word}
 .ord.expanded .detail{display:block}
-.ord .detail .dl{display:flex;gap:6px;margin-bottom:3px}
-.ord .detail .dl .k{color:var(--ink-mute);flex-shrink:0;width:62px;font-size:11px;padding-top:1px}
-.ord .detail .dl .v{color:var(--ink-dim);flex:1;word-break:break-word;white-space:normal}
-.ord .detail .prod{color:var(--ink);font-weight:500}
+.ord .detail .dl{margin-bottom:8px}
+.ord .detail .dl:last-child{margin-bottom:0}
+.ord .detail .dl-lbl{color:var(--ink-mute);font-size:11px;font-weight:700;margin-right:5px;white-space:nowrap}
+.ord .detail .dl-list{margin-top:3px}
+.ord .detail .dl-truck{background:#2a2110;border-radius:7px;padding:7px 10px}
+.ord .detail .dl-truck .dl-lbl{color:#e0b95a}
+.ord .detail .prod{color:var(--ink);font-weight:500;padding:1px 0}
 
 .swal2-popup{font-family:'IBM Plex Sans Thai',sans-serif!important;background:#1c2836!important;color:#e6edf5!important;border:1px solid #33465c;border-radius:14px!important}
 .swal2-title{color:#e6edf5!important;font-size:17px!important}
@@ -333,6 +336,18 @@ body.is-viewer .drv-select { pointer-events: none; -webkit-appearance: none; app
   <div id="backlog-list" style="display:flex; flex-direction:column; gap:8px; max-height: 60vh; overflow-y:auto; padding-right:8px;"></div>
 </div>
 
+<div class="pop centered" id="cancelled-modal" style="width:min(700px,90vw)">
+  <div class="pop-head"><h4>❌ ออเดอร์ที่ยกเลิก (จากไฟล์ที่นำเข้าล่าสุด)</h4><span class="pop-close" onclick="closePopups()">✕</span></div>
+  <div style="font-size:11.5px;color:var(--ink-mute);margin-bottom:10px">รายการนี้ถูกลบออกจากบอร์ดแล้วโดยอัตโนมัติ เก็บไว้แค่ให้ดูย้อนหลังว่ามีอะไรบ้างที่ถูกยกเลิกไป</div>
+  <div id="cancelled-list" style="display:flex; flex-direction:column; gap:8px; max-height: 60vh; overflow-y:auto; padding-right:8px;"></div>
+</div>
+
+<div class="pop centered" id="changed-modal" style="width:min(700px,90vw)">
+  <div class="pop-head"><h4>🟡 ออเดอร์ที่เปลี่ยนแปลง (แก้ไขปริมาณจากไฟล์ที่นำเข้าล่าสุด)</h4><span class="pop-close" onclick="closePopups()">✕</span></div>
+  <div style="font-size:11.5px;color:var(--ink-mute);margin-bottom:10px">ออเดอร์เหล่านี้ยังอยู่ในระบบตามปกติ แค่มีการแก้ไขปริมาณ/น้ำหนักจากไฟล์ล่าสุด — กด "🔍 หา" เพื่อไปดูตำแหน่งปัจจุบันของออเดอร์นั้น</div>
+  <div id="changed-list" style="display:flex; flex-direction:column; gap:8px; max-height: 60vh; overflow-y:auto; padding-right:8px;"></div>
+</div>
+
 <div class="pop centered" id="settings">
   <div class="pop-head"><h4>⚙ ตั้งค่าเพดาน<b style="color:var(--warn)">ต่อเที่ยว</b> · จำนวนรถ</h4><span class="pop-close" onclick="closePopups()">✕</span></div>
   <div class="grid" style="grid-template-columns:auto 1fr 1fr 1fr">
@@ -406,6 +421,8 @@ body.is-viewer .drv-select { pointer-events: none; -webkit-appearance: none; app
   <div style="width:1px;height:16px;background:var(--line);margin:0 4px"></div>
   <button class="btn btn-sm" id="btn-pickup" style="background:#2a1a18;color:#f09f90;border-color:#5c352b">🏢 รับเอง (<span id="c-pickup">0</span>)</button>
   <button class="btn btn-sm" id="btn-backlog" style="background:#2a2410;color:#f0d090;border-color:#5c4f23">📋 ค้างส่ง (<span id="c-backlog">0</span>)</button>
+  <button class="btn btn-sm" id="btn-cancelled" style="background:#3b1916;color:#ff9088;border-color:#7a2a22">❌ ยกเลิก (<span id="c-cancelled">0</span>)</button>
+  <button class="btn btn-sm" id="btn-changed" style="background:#332a0a;color:#f0d858;border-color:#6b5a1a">🟡 เปลี่ยนแปลง (<span id="c-changed">0</span>)</button>
   <button class="btn btn-sm" id="btn-expand">▾ ขยายรายละเอียด</button>
   <button class="btn btn-sm admin-only" id="btn-clear" style="background:#2b1614;color:#ff7b72;border-color:#8a251c">✕ ล้างรถทั้งหมด</button>
   <button class="btn btn-sm admin-only" id="btn-clear-all" style="background:#3b1916;color:#ff7b72;border-color:#8a251c">🗑️ ลบออเดอร์ทั้งหมด</button>
@@ -532,6 +549,8 @@ let historyIndex = -1;
 
 let ORDERS = [];
 let BACKLOG_ORDERS = []; // ออเดอร์ค้างส่ง — ไม่ผูกกับวันที่ใดวันหนึ่ง เก็บแยกต่างหาก
+let CANCELLED_LOG = []; // log ออเดอร์ที่ไฟล์ล่าสุดระบุว่า "ยกเลิก" (ถูกลบออกจากบอร์ดแล้ว เก็บไว้แค่ดูย้อนหลัง)
+let CHANGED_LOG = [];   // log ออเดอร์ที่ไฟล์ล่าสุดระบุว่า "แก้ไขปริมาณ" (ยังอยู่ในระบบ แค่เก็บ log ไว้เตือน)
 let nextBacklogSeq = 1;
 const CAP={4:3000, 6:8000, 10:12000, hire:16000};
 const IBC_CAP={4:2, 6:6, 10:10, hire:12};  
@@ -781,6 +800,59 @@ function renderBacklogList() {
         pModal.appendChild(d);
     });
 }
+// ---- ออเดอร์ที่ยกเลิก/เปลี่ยนแปลง (จากไฟล์ที่นำเข้าล่าสุด) ----
+function renderCancelledList() {
+    const elc = document.getElementById('c-cancelled'); if(elc) elc.textContent = CANCELLED_LOG.length;
+    const el = document.getElementById('cancelled-list'); if(!el) return;
+    if(!CANCELLED_LOG.length) { el.innerHTML = '<div class="empty">ยังไม่มีออเดอร์ที่ถูกยกเลิก</div>'; return; }
+    el.innerHTML = '';
+    CANCELLED_LOG.forEach((o, idx) => {
+        const item0 = (o.items && o.items.length) ? String(o.items[0]).split('·')[0].trim() : '';
+        const d = document.createElement('div');
+        d.className = 'ord'; d.style.borderLeftColor = '#ff5449';
+        d.innerHTML = `
+            <div class="r1"><span class="seq">${o.so||''}</span><span class="cust">${o.cust}</span></div>
+            <div class="r1" style="margin-top:3px;align-items:center;gap:4px;flex-wrap:wrap"><span class="wt" style="margin-left:auto">⚖️ ${(o.wt||0).toLocaleString()} กก.</span></div>
+            <div class="r2"><span>📍 ${o.prov||'?'} · ${item0}</span></div>
+            <div class="card-tools">
+              <span style="color:var(--ink-mute);font-size:11px">ยกเลิกเมื่อ ${o.ts ? new Date(o.ts).toLocaleString('th-TH',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : '-'}</span>
+              ${window.isViewerMode?'':`<span class="split-btn" onclick="removeCancelledLog(${idx})" style="color:var(--ink-mute);margin-left:auto">🗑 ลบออกจาก log</span>`}
+            </div>
+        `;
+        el.appendChild(d);
+    });
+}
+window.removeCancelledLog = function(idx){ CANCELLED_LOG.splice(idx,1); renderCancelledList(); saveState(); };
+
+function renderChangedList() {
+    const elc = document.getElementById('c-changed'); if(elc) elc.textContent = CHANGED_LOG.length;
+    const el = document.getElementById('changed-list'); if(!el) return;
+    if(!CHANGED_LOG.length) { el.innerHTML = '<div class="empty">ยังไม่มีออเดอร์ที่เปลี่ยนแปลง</div>'; return; }
+    el.innerHTML = '';
+    CHANGED_LOG.forEach((o, idx) => {
+        const item0 = (o.items && o.items.length) ? String(o.items[0]).split('·')[0].trim() : '';
+        const stillExists = ORDERS.some(x=>x.seq===o.seq && x.so===o.so);
+        const d = document.createElement('div');
+        d.className = 'ord'; d.style.borderLeftColor = '#e0c040';
+        d.innerHTML = `
+            <div class="r1"><span class="seq">${o.so||''}</span><span class="cust">${o.cust}</span></div>
+            <div class="r1" style="margin-top:3px;align-items:center;gap:4px;flex-wrap:wrap"><span class="wt" style="margin-left:auto">⚖️ ${(o.wt||0).toLocaleString()} กก.</span></div>
+            <div class="r2"><span>📍 ${o.prov||'?'} · ${item0}</span></div>
+            <div class="card-tools">
+              ${stillExists ? `<span class="split-btn" onclick="locateChangedOrder('${o.so}')" style="color:#79c0ff">🔍 หา</span>` : `<span style="color:var(--ink-mute);font-size:11px">— ไม่พบในระบบแล้ว —</span>`}
+              ${window.isViewerMode?'':`<span class="split-btn" onclick="removeChangedLog(${idx})" style="color:var(--ink-mute);margin-left:auto">🗑 ลบออกจาก log</span>`}
+            </div>
+        `;
+        el.appendChild(d);
+    });
+}
+window.removeChangedLog = function(idx){ CHANGED_LOG.splice(idx,1); renderChangedList(); saveState(); };
+window.locateChangedOrder = function(so){
+    closePopups();
+    document.getElementById('search').value = so;
+    searchTerm = so;
+    renderPool(); renderBoard(); wireDrop();
+};
 // ---- ส่งออเดอร์ล่วงหน้าไปวันอื่น ----
 window.forwardOrderPrompt = function(seq) {
     if (window.isViewerMode) return;
@@ -978,7 +1050,7 @@ window.pushStateToCloud = async function() {
     const pushDateStr = currentDateStr; // จับวันที่ ณ ตอนเริ่ม push ไว้ก่อน เผื่อผู้ใช้สลับวันที่ระหว่างรอ setDoc
     syncingDates.add(pushDateStr);
     const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'board_state', pushDateStr);
-    const payload = JSON.stringify({ ORDERS, trucks, assign, SPLITS, nextGrp, tid, DRIVERS, nextDrvId });
+    const payload = JSON.stringify({ ORDERS, trucks, assign, SPLITS, nextGrp, tid, DRIVERS, nextDrvId, CANCELLED_LOG, CHANGED_LOG });
     try { await setDoc(docRef, { payload }); fetchOrderDays(); } catch(err) { console.error("Cloud push failed:", err); }
     setTimeout(() => { syncingDates.delete(pushDateStr); }, 500); 
 }
@@ -991,7 +1063,7 @@ async function forcePushCurrentBoard() {
     syncingDates.add(pushDateStr);
     try {
         const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'board_state', pushDateStr);
-        const payload = JSON.stringify({ ORDERS, trucks, assign, SPLITS, nextGrp, tid, DRIVERS, nextDrvId });
+        const payload = JSON.stringify({ ORDERS, trucks, assign, SPLITS, nextGrp, tid, DRIVERS, nextDrvId, CANCELLED_LOG, CHANGED_LOG });
         await setDoc(docRef, { payload }); fetchOrderDays();
     } catch(err) { console.error("Force push failed:", err); }
     setTimeout(() => { syncingDates.delete(pushDateStr); }, 500);
@@ -999,22 +1071,24 @@ async function forcePushCurrentBoard() {
 
 function restoreStateFromCloud(c) {
     if(!c || !c.ORDERS) {
-        ORDERS = []; trucks = []; assign = {}; SPLITS = {};
+        ORDERS = []; trucks = []; assign = {}; SPLITS = {}; CANCELLED_LOG = []; CHANGED_LOG = [];
     } else {
         ORDERS = c.ORDERS || []; trucks = c.trucks || []; assign = c.assign || {};
         SPLITS = c.SPLITS || {}; nextGrp = c.nextGrp || 1; tid = c.tid || 1;
         if(c.DRIVERS) { DRIVERS = c.DRIVERS; nextDrvId = c.nextDrvId || 100; }
+        CANCELLED_LOG = c.CANCELLED_LOG || []; CHANGED_LOG = c.CHANGED_LOG || [];
     }
 
-    historyStack = [JSON.parse(JSON.stringify({ ORDERS, trucks, assign, SPLITS, nextGrp, tid, DRIVERS, nextDrvId }))];
+    historyStack = [JSON.parse(JSON.stringify({ ORDERS, trucks, assign, SPLITS, nextGrp, tid, DRIVERS, nextDrvId, CANCELLED_LOG, CHANGED_LOG }))];
     historyIndex = 0;
 
     initZones(); render(); updateUndoRedoUI();
+    renderCancelledList(); renderChangedList();
 }
 
 function saveState() {
   if (historyIndex < historyStack.length - 1) historyStack = historyStack.slice(0, historyIndex + 1);
-  historyStack.push(JSON.parse(JSON.stringify({ ORDERS, trucks, assign, SPLITS, nextGrp, tid, DRIVERS, nextDrvId })));
+  historyStack.push(JSON.parse(JSON.stringify({ ORDERS, trucks, assign, SPLITS, nextGrp, tid, DRIVERS, nextDrvId, CANCELLED_LOG, CHANGED_LOG })));
   historyIndex++;
   if (historyStack.length > 50) { historyStack.shift(); historyIndex--; }
   updateUndoRedoUI();
@@ -1036,6 +1110,7 @@ function restoreState(s) {
   const c = JSON.parse(JSON.stringify(s));
   ORDERS = c.ORDERS; trucks = c.trucks; assign = c.assign; SPLITS = c.SPLITS;
   nextGrp = c.nextGrp; tid = c.tid; DRIVERS = c.DRIVERS; nextDrvId = c.nextDrvId;
+  CANCELLED_LOG = c.CANCELLED_LOG || []; CHANGED_LOG = c.CHANGED_LOG || [];
   initZones(); render(oldScrolls); updateUndoRedoUI();
   pushStateToCloud();
 }
@@ -1133,6 +1208,7 @@ function parseOrderSheet(wsRows){
     const prov = provOf(atxt) || '?';
     const zone = PROV_ZONE[prov] || 'อื่นๆ';
     const cancel = o.status.includes('ยกเลิก');
+    const change = o.status.includes('แก้ไขปริมาณ');
     const wtTotal = Math.round(o.items.reduce((s,i) => s + i.wt, 0));
     const excelSeqNum = parseInt(String(o.rawSeq).replace(/\D/g, ''), 10) || 99999;
 
@@ -1141,7 +1217,7 @@ function parseOrderSheet(wsRows){
       prov, zone, wt: wtTotal, addr: atxt.trim(),
       items: o.items.filter(i=>i.wt>0).map(i=>`${i.prod} · ${Math.round(i.wt)}กก.`),
       packs0: Object.entries(o.packMap).map(([s,q]) => ({s:Number(s), q})).sort((a,b)=>a.s-b.s),
-      truck: finalTruck, helper, loads, power, wor8, lic4, prenotify, win, hard, date, cancel,
+      truck: finalTruck, helper, loads, power, wor8, lic4, prenotify, win, hard, date, cancel, change,
       d_time: memo.time, d_store: memo.store, d_deliver: memo.deliver, d_truck: memo.truck,
       d_doc: (memo.docret + ' ' + memo.sales).trim(), d_equip: memo.equip, d_safety: memo.safety, d_qa: memo.qa, matched: true
     };
@@ -1152,6 +1228,7 @@ function mergeOrders(recs){
   const bySo={}; ORDERS.forEach(o=>{if(o.so && !o._grp) bySo[o.so]=o;});
   let added=0, updated=0, cancelled=[], skippedSplit=0;
   let maxSeq = ORDERS.length ? Math.max(...ORDERS.map(o=>o.seq)) : 0;
+  const now = Date.now();
   
   recs.forEach(r=>{
     const splitParent = Object.values(SPLITS).find(g=>g.orig.so === r.so);
@@ -1165,10 +1242,13 @@ function mergeOrders(recs){
           cancelled.push(`${ex.cust.slice(0,20)} (อยู่ใน ${t?t.name:'รถ'})`);
         } else cancelled.push(ex.cust.slice(0,20));
         removeAssign(ex.seq); ORDERS = ORDERS.filter(x=>x.seq!==ex.seq);
-      }
+      } else cancelled.push(r.cust.slice(0,20));
+      CANCELLED_LOG.unshift({so:r.so, cust:r.cust, prov:r.prov, addr:r.addr, items:r.items, wt:r.wt, ts:now});
+      if(CANCELLED_LOG.length>200) CANCELLED_LOG.length=200;
       return;
     }
     
+    let resultSeq;
     if(ex){
       const wasAssigned = !!assign[ex.seq];
       const changed = ex.wt!==r.wt || JSON.stringify(ex.items)!==JSON.stringify(r.items) || JSON.stringify(ex.truck)!==JSON.stringify(r.truck);
@@ -1176,9 +1256,15 @@ function mergeOrders(recs){
       processNLP(ex);
       if(changed) updated++;
       if(changed && wasAssigned) ex._upd = true;
+      resultSeq = ex.seq;
     } else {
       const n = {...r, seq: ++maxSeq, _new: true};
       processNLP(n); ORDERS.push(n); added++;
+      resultSeq = n.seq;
+    }
+    if(r.change){
+      CHANGED_LOG.unshift({so:r.so, cust:r.cust, prov:r.prov, addr:r.addr, items:r.items, wt:r.wt, seq:resultSeq, ts:now});
+      if(CHANGED_LOG.length>200) CHANGED_LOG.length=200;
     }
   });
   return {added, updated, cancelled, skippedSplit};
@@ -1328,17 +1414,17 @@ function badgeHtml(o){
 
 function detailHtml(o){
   const r=[]; const items=(o.items||[]).map(x=>`<div class="prod">• ${x}</div>`).join('');
-  if(items) r.push(`<div class="dl"><span class="k">สินค้า</span><span class="v">${items}</span></div>`);
-  if(o.addr) r.push(`<div class="dl"><span class="k">ที่อยู่</span><span class="v">${o.addr}</span></div>`);
-  if(o.d_truck) r.push(`<div class="dl" style="background:#2a2110;border-radius:6px;padding:5px 8px;margin:2px 0"><span class="k" style="color:#e0b95a">🚚 ประเภทรถ/พขร.</span><span class="v" style="color:#f0d090;font-weight:600">${o.d_truck}</span></div>`);
-  if(o.d_time) r.push(`<div class="dl"><span class="k">เวลา/ติดต่อ</span><span class="v">${o.d_time}</span></div>`);
-  if(o.d_store) r.push(`<div class="dl"><span class="k">คลัง</span><span class="v">${o.d_store}</span></div>`);
-  if(o.d_deliver) r.push(`<div class="dl"><span class="k">การส่ง</span><span class="v">${o.d_deliver}</span></div>`);
-  if(o.d_doc) r.push(`<div class="dl"><span class="k">เอกสาร</span><span class="v">${o.d_doc}</span></div>`);
-  if(o.d_equip) r.push(`<div class="dl"><span class="k">อุปกรณ์</span><span class="v">${o.d_equip}</span></div>`);
-  if(o.d_safety) r.push(`<div class="dl"><span class="k">เซฟตี้</span><span class="v">${o.d_safety}</span></div>`);
-  if(o.d_qa) r.push(`<div class="dl"><span class="k">QA</span><span class="v">${o.d_qa}</span></div>`);
-  if(o.customFields) o.customFields.forEach(cf => { if(cf.k && cf.v) r.push(`<div class="dl"><span class="k" style="color:var(--accent)">${cf.k}</span><span class="v">${cf.v}</span></div>`); });
+  if(items) r.push(`<div class="dl"><b class="dl-lbl">📦 สินค้า</b><div class="dl-list">${items}</div></div>`);
+  if(o.addr) r.push(`<div class="dl"><b class="dl-lbl">📍 ที่อยู่</b> ${o.addr}</div>`);
+  if(o.d_truck) r.push(`<div class="dl dl-truck"><b class="dl-lbl">🚚 ประเภทรถ / พขร.</b> ${o.d_truck}</div>`);
+  if(o.d_time) r.push(`<div class="dl"><b class="dl-lbl">⏰ เวลา/ติดต่อ</b> ${o.d_time}</div>`);
+  if(o.d_store) r.push(`<div class="dl"><b class="dl-lbl">🏭 คลัง</b> ${o.d_store}</div>`);
+  if(o.d_deliver) r.push(`<div class="dl"><b class="dl-lbl">🚛 การส่ง</b> ${o.d_deliver}</div>`);
+  if(o.d_doc) r.push(`<div class="dl"><b class="dl-lbl">📄 เอกสาร</b> ${o.d_doc}</div>`);
+  if(o.d_equip) r.push(`<div class="dl"><b class="dl-lbl">🔧 อุปกรณ์</b> ${o.d_equip}</div>`);
+  if(o.d_safety) r.push(`<div class="dl"><b class="dl-lbl">🦺 เซฟตี้</b> ${o.d_safety}</div>`);
+  if(o.d_qa) r.push(`<div class="dl"><b class="dl-lbl">🔬 QA</b> ${o.d_qa}</div>`);
+  if(o.customFields) o.customFields.forEach(cf => { if(cf.k && cf.v) r.push(`<div class="dl"><b class="dl-lbl" style="color:var(--accent)">${cf.k}</b> ${cf.v}</div>`); });
   return `<div class="detail">${r.join('')}</div>`;
 }
 
@@ -1368,7 +1454,7 @@ function orderCard(o, inTruck, truckType){
       tools.push(`<span class="split-btn admin-only" title="ส่งไปเก็บไว้ที่ออเดอร์ค้าง (จัดวันนี้ไม่ได้)" onclick="event.stopPropagation();sendToBacklog(${o.seq})" style="color:#e0b95a">📋 ค้าง</span>`);
       tools.push(`<span class="split-btn admin-only" title="ส่งออเดอร์นี้ไปวันที่อื่น" onclick="event.stopPropagation();forwardOrderPrompt(${o.seq})" style="color:#8fc2ff">📅 ล่วงหน้า</span>`);
   }
-  tools.push(`<span class="exp-btn">${(inTruck && expandedAll)?'ย่อ ▴':'รายละเอียด ▾'}</span>`);
+  tools.push(`<span class="exp-btn">${expandedAll?'ย่อ ▴':'รายละเอียด ▾'}</span>`);
   
   let packChips = (o.packs||[]).map(p => `<span class="pk${p.s>=500?' pk-ibc':''}">📦 ${p.s>=500?(p.s+' Kg'):(p.s+' Kg')}${p.q?` × ${p.q.toLocaleString()}`:''}</span>`).join(' ');
   let carryChip = o.ibc > 0 ? `<span class="wt" style="color:#79c0ff;margin-right:6px">🛢 ${o.ibc} IBC</span>` : '';
@@ -1385,7 +1471,7 @@ function orderCard(o, inTruck, truckType){
       div.addEventListener('dragend', () => { div.classList.remove('dragging'); window._dragSeq=null; clearMarks(); });
   }
   
-  if(inTruck && expandedAll) div.classList.add('expanded');
+  if(expandedAll) div.classList.add('expanded');
   const tog = e => { if(window.getSelection().toString().length>0) return; e.stopPropagation(); div.classList.toggle('expanded'); const eb = div.querySelector('.exp-btn'); if(eb) eb.textContent = div.classList.contains('expanded') ? 'ย่อ ▴' : 'รายละเอียด ▾'; };
   const eb = div.querySelector('.exp-btn'); if(eb) eb.addEventListener('click', tog);
   div.querySelector('.cust').addEventListener('click', tog);
@@ -1458,6 +1544,10 @@ function renderPool(){
   }
 }
 
+function truckHasSearchMatch(t){
+  if(!searchTerm) return true;
+  return t.trips.some(tr => tr.some(q => matchesSearch(byId(q))));
+}
 function renderBoard(){
   const board = document.getElementById('board'); board.innerHTML='';
   Object.keys(TM).forEach(type => {
@@ -1466,13 +1556,13 @@ function renderBoard(){
     const cnt = trucks.filter(t => t.type===type && truckStops(t)).length; const over = type!=='hire' && cnt>FLEET[type];
     
     col.innerHTML = `<div class="col-head"><span class="dot"></span><b>${m.label}</b>` +
-      `<span class="cnt" style="${over?'color:var(--bad);font-weight:700':''}">${cnt}${type!=='hire'?'/'+FLEET[type]:''} คัน${over?' ⚠เกินกอง':''}</span>` +
+      `<span class="cnt" style="${over?'color:var(--bad);font-weight:700':''}">${cnt}${type!=='hire'?'/'+FLEET[type]:''} คัน${over?' ⚠เกินจำนวนรถที่มี':''}</span>` +
       `<span class="cap">/เที่ยว ${CAP[type].toLocaleString()} กก.</span></div><div class="col-body" id="body-${type}"></div>`;
       
     board.appendChild(col); const body = col.querySelector('.col-body');
-    trucks.filter(t => t.type===type).forEach(t => body.appendChild(truckCard(t)));
+    trucks.filter(t => t.type===type && truckHasSearchMatch(t)).forEach(t => body.appendChild(truckCard(t)));
     
-    if(!window.isViewerMode) {
+    if(!window.isViewerMode && !searchTerm) {
         const add = document.createElement('div'); add.className='add-truck admin-only'; add.textContent='+ เพิ่มรถ '+m.label;
         add.onclick = () => { 
             let oldScrolls = saveScrollPositions();
@@ -1558,7 +1648,9 @@ function truckCard(t){
     // ใช้ลำดับตามที่เก็บไว้จริง (tr) — ไม่บังคับเรียงตามเวลาซ้ำทุกครั้งที่ render แล้ว
     // เพื่อให้ลากจัดลำดับจุดส่งเองได้ (ลำดับจะถูกจดจำไว้) กดปุ่ม "🔃 เรียงตามเวลา" เพื่อเรียงอัตโนมัติได้ทุกเมื่อ
     tr.forEach((q, stopIdx) => {
-      const card = orderCard(byId(q), true, t.type);
+      const o = byId(q);
+      if(searchTerm && !matchesSearch(o)) return; // ซ่อนออเดอร์ที่ไม่ตรงกับคำค้นหา แสดงเฉพาะที่แมทเท่านั้น
+      const card = orderCard(o, true, t.type);
       const stopNum = document.createElement('span');
       stopNum.className = 'stop-num'; stopNum.textContent = stopIdx+1;
       card.prepend(stopNum);
@@ -2140,12 +2232,16 @@ window.closePopups = function(){
   document.getElementById('pickup-modal').classList.remove('show'); 
   document.getElementById('backlog-modal').classList.remove('show'); 
   document.getElementById('access-modal').classList.remove('show'); 
+  document.getElementById('cancelled-modal').classList.remove('show'); 
+  document.getElementById('changed-modal').classList.remove('show'); 
   document.getElementById('backdrop').classList.remove('show'); 
 };
 document.getElementById('btn-settings').onclick = () => { closePopups(); document.getElementById('settings').classList.add('show'); document.getElementById('backdrop').classList.add('show'); };
 document.getElementById('btn-drivers').onclick = () => { closePopups(); document.getElementById('driverpop').classList.add('show'); document.getElementById('backdrop').classList.add('show'); };
 document.getElementById('btn-pickup').onclick = () => { closePopups(); document.getElementById('pickup-modal').classList.add('show'); document.getElementById('backdrop').classList.add('show'); };
 document.getElementById('btn-backlog').onclick = () => { closePopups(); renderBacklogList(); document.getElementById('backlog-modal').classList.add('show'); document.getElementById('backdrop').classList.add('show'); };
+document.getElementById('btn-cancelled').onclick = () => { closePopups(); renderCancelledList(); document.getElementById('cancelled-modal').classList.add('show'); document.getElementById('backdrop').classList.add('show'); };
+document.getElementById('btn-changed').onclick = () => { closePopups(); renderChangedList(); document.getElementById('changed-modal').classList.add('show'); document.getElementById('backdrop').classList.add('show'); };
 document.getElementById('btn-access').onclick = () => { closePopups(); renderAccessList(); document.getElementById('access-modal').classList.add('show'); document.getElementById('backdrop').classList.add('show'); };
 document.getElementById('btn-add-admin').onclick = () => addAdminEmail();
 document.getElementById('btn-add-viewer').onclick = () => addViewerEmail();
@@ -2186,7 +2282,7 @@ document.getElementById('btn-clear-all').onclick = () => {
 document.getElementById('search').addEventListener('input', e => { searchTerm=e.target.value; renderPool(); renderBoard(); wireDrop(); });
 document.getElementById('btn-expand').onclick = () => { 
   expandedAll = !expandedAll; document.getElementById('btn-expand').textContent = expandedAll ? '▴ ย่อรายละเอียด' : '▾ ขยายรายละเอียด';
-  document.querySelectorAll('.truck .ord').forEach(c => { c.classList.toggle('expanded', expandedAll); const eb = c.querySelector('.exp-btn'); if(eb) eb.textContent = expandedAll ? 'ย่อ ▴' : 'รายละเอียด ▾'; });
+  document.querySelectorAll('.ord').forEach(c => { c.classList.toggle('expanded', expandedAll); const eb = c.querySelector('.exp-btn'); if(eb) eb.textContent = expandedAll ? 'ย่อ ▴' : 'รายละเอียด ▾'; });
 };
 
 /* ---------- ดึงวันที่ส่งสินค้าจากไฟล์ออเดอร์ เพื่อสลับปฏิทินให้ตรงอัตโนมัติ ---------- */
@@ -2243,9 +2339,13 @@ window.importOrderWB=function(wb){
       const ws = wb.Sheets[sn]; const rows = XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:null});
       const recs = parseOrderSheet(rows); if(!recs.length){toast('⚠ ไม่พบออเดอร์ในชีทนี้ — เช็ครูปแบบไฟล์'); return;}
       let oldScrolls = saveScrollPositions();
+      const changedCountBefore = CHANGED_LOG.length;
       const res = mergeOrders(recs); initZones(); render(oldScrolls);
+      renderCancelledList(); renderChangedList();
+      const changedThisRound = CHANGED_LOG.length - changedCountBefore;
       let msg = `📥 นำเข้า ${sn}: ใหม่ ${res.added} · อัปเดต ${res.updated}`;
       if(res.cancelled.length) msg += ` · ❌ยกเลิก ${res.cancelled.length} (${res.cancelled.slice(0,3).join(', ')}${res.cancelled.length>3?'…':''})`;
+      if(changedThisRound) msg += ` · 🟡เปลี่ยนแปลง ${changedThisRound}`;
       if(res.skippedSplit) msg += ` · ข้ามงานที่แบ่งไว้ ${res.skippedSplit}`;
       if(currentDateStr < todayStr){
         // วันที่ผ่านมาแล้ว: บันทึกได้ (เพื่อเก็บข้อมูลไฟล์ที่นำเข้า) แต่จากนี้ไปแก้ไข/จัดงานไม่ได้แล้ว ดูได้อย่างเดียว
